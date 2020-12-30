@@ -1,0 +1,5 @@
+src
+*.mp4
+*.webm
+res
+node_modules

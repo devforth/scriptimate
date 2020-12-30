@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/devforth/scriptimate#readme",
   "dependencies": {
+    "argparse": "^2.0.1",
+    "fs-extra": "^9.0.1",
     "html2canvas": "^1.0.0-rc.7",
     "puppeteer": "^5.5.0",
     "short-uuid": "^4.1.0"

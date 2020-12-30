@@ -3,3 +3,4 @@ src
 *.webm
 res
 node_modules
+frames

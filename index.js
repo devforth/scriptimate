@@ -29,7 +29,8 @@ parser.add_argument('-fn', '--filename', { help: 'filename', default: 'out' });
  
 const proc_args = parser.parse_args();
 
-let parts = {};
+const parts = {};
+const timers = {};
 let html = '';
 
 const genHtml = () => {
@@ -102,7 +103,7 @@ const addPart = async (filename, left, top, opacity, scale) => {
 };
 
 const addDiv = async (name, left, top, w, h, opacity, ...rest) => {
-  const content = rest.join(' ')
+  const content = rest.join(' ').replaceAll('"', '').replaceAll("'", '');
   parts[name] = {
     type: 'block',
     name,
@@ -112,7 +113,7 @@ const addDiv = async (name, left, top, w, h, opacity, ...rest) => {
     w: +firstDefined(w, 0),
     h: +firstDefined(h, 0),
     index: Object.values(parts).length,
-    content: content.replaceAll('"', '').replaceAll("'", ''),
+    content: content,
   }
   genHtml();
 }
@@ -125,6 +126,25 @@ const addStyle = async (part, style) => {
   parts[part].extrastyle = style;
 }
 
+const schedule_eval = async (name, ms, ...rest) => {
+  const code = rest.join(' ');
+  timers[name] = setInterval(
+    () => {
+      const incr = (part) => {
+        parts[part].content = +parts[part].content + 1;
+      }
+      const get = (part) => {
+        return parts[part].content;
+      }
+      const set = (part, value) => {
+        parts[part].content = value;
+      }
+      eval(code)
+      genHtml();
+    },
+    +ms
+  )
+}
 
 const script = `
 place board 0 0
@@ -132,10 +152,25 @@ place board 0 0
 place board_signin_task 17 149
 addstyle board_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
+; valen
 place board_transaction_list_task 17 253
 addstyle board_transaction_list_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
+place_div board_valentyn_minutes 319 190 15 14 1 "18"
+place_div board_valentyn_seconds 319 205 15 14 1 "2"
+addstyle board_valentyn_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
+addstyle board_valentyn_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
+
+schedule_eval valentyn_minutes 300 incr('board_valentyn_seconds'); if (+get('board_valentyn_seconds') >= 60) { incr('board_valentyn_minutes'); set('board_valentyn_seconds', 0)}
+
+; max active task
 place signin_board_task_active 302 252 0
+
+place_div board_max_minutes 319 296 15 14 0 "0"
+place_div board_max_seconds 319 311 15 14 0 "0"
+addstyle board_max_minutes color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
+addstyle board_max_seconds color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
+
 
 ; board
 
@@ -156,12 +191,11 @@ place btn_gray_runtracker 594 2 0
 
 place app_task_highliter 285 526 0.0
 
-place_div board_valentyn_minutes 319 190 15 14 1 "18"
-place_div board_valentyn_seconds 319 205 15 14 1 "2"
-addstyle board_valentyn_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
-addstyle board_valentyn_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 
-schedule_eval valentyn_minutes 300 "incr(board_valentyn_seconds); if (get(board_valentyn_seconds) >= 60) { incr(board_valentyn_minutes) }"
+place_div app_max_minutes 1017 463 15 14 1 "0"
+place_div app_max_seconds 1017 478 15 14 1 "0"
+addstyle app_max_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
+addstyle app_max_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 
 place cursor 241 323
 animate_400 move cursor 620 22
@@ -182,8 +216,11 @@ animate_120 scale cursor 1
 animate_300 opacity app_task_highliter 0
 
 animate_300 move board_signin_task 302 252 && opacity app_signin_task 0 
-animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1
-animate_200 pause
+animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1 && opacity board_max_minutes 1 && opacity board_max_seconds 1
+
+schedule_eval valentyn_minutes 300 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
+
+animate_2000 pause
 
 `;
 
@@ -240,6 +277,10 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
     else if (cmd === 'place_div') {
       let args = argSets[0].split(' ');
       await addDiv(...args);
+    }
+    else if (cmd === 'schedule_eval') {
+      let args = argSets[0].split(' ');
+      await schedule_eval(...args);
     }
     else if (cmd === 'addstyle') {
       let args =  argSets[0].split(' ');

@@ -36,10 +36,16 @@ const genHtml = () => {
   const inner = Object.values(parts).sort((a,b) => {
       return a.index - b.index
   }).reduce((acc, p) => {
-    return `${acc}<div style="position:fixed;top:${p.top}px;left:${p.left}px;opacity:${p.opacity};transform:scale(${p.scale});${p.extrastyle}">${p.content}</div>`
+    if (p.type === 'part') {
+      return `${acc}<div style="position:fixed;top:${p.top}px;left:${p.left}px;opacity:${p.opacity};transform:scale(${p.scale});${p.extrastyle}">${p.content}</div>`
+    } else if (p.type === 'block') {
+      return `${acc}<div style="position:fixed;top:${p.top}px;left:${p.left}px;width:${p.w}px;height:${p.h}px;opacity:${p.opacity};${p.extrastyle}">${p.content}</div>`
+    }
   }, '');
   html = `<html>
       <head>
+        <link rel="preconnect" href="https://fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
         <style>
         * {
           -webkit-font-smoothing:antialiased;
@@ -47,7 +53,7 @@ const genHtml = () => {
         }
         body {
           transform-origin: top left;
-          transform: scale(2);
+          transform: scale(1);
         }
         </style>
       </head>
@@ -81,6 +87,7 @@ const addPart = async (filename, left, top, opacity, scale) => {
     withUniquifiedIDs = withUniquifiedIDs.replaceAll(`#${u}`, `#${partIds[u]}`);
   })
   parts[filename] = {
+    type: 'part',
     filename,
     // todo remove ugly fix
     content: withUniquifiedIDs,
@@ -92,6 +99,22 @@ const addPart = async (filename, left, top, opacity, scale) => {
     extrastyle: '',
   };
   genHtml()
+};
+
+const addDiv = async (name, left, top, w, h, opacity, ...rest) => {
+  const content = rest.join(' ')
+  parts[name] = {
+    type: 'block',
+    name,
+    top: +firstDefined(top, 0),
+    left: +firstDefined(left, 0),
+    opacity: +firstDefined(opacity, 1),
+    w: +firstDefined(w, 0),
+    h: +firstDefined(h, 0),
+    index: Object.values(parts).length,
+    content: content.replaceAll('"', '').replaceAll("'", ''),
+  }
+  genHtml();
 }
 
 const addStyle = async (part, style) => {
@@ -106,54 +129,65 @@ const addStyle = async (part, style) => {
 const script = `
 place board 0 0
 
-place signin_board_task 17 149
-addstyle signin_board_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
+place board_signin_task 17 149
+addstyle board_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
-place transaction_list_board_task 17 253
-addstyle transaction_list_board_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
+place board_transaction_list_task 17 253
+addstyle board_transaction_list_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
-place app_backplate 361 383 0.4
+place signin_board_task_active 302 252 0
+
+; board
+
+place app_backplate 145 374 0.4
 addstyle app_backplate box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35)
 
-place app_signin_task 576 568 0.4
+place app_panel_no_track 969 530 0.4
+
+place app_signin_task 285 526 0.4
 addstyle app_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
-place app_transaction_list_task 852 568 0.4
+place app_transaction_list_task 561 526 0.4
 addstyle app_transaction_list_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
-place max_bord_glow_header 366 5 1
-place max_bord_glow_task 487 285 1
+place bord_max_glow_header 300 0 0
 
+place btn_gray_runtracker 594 2 0
 
-place highliter 576 568 0.0
+place app_task_highliter 285 526 0.0
 
-place cursor 321 323
-animate_400 move cursor 755 22
+place_div board_valentyn_minutes 319 190 15 14 1 "18"
+place_div board_valentyn_seconds 319 205 15 14 1 "2"
+addstyle board_valentyn_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
+addstyle board_valentyn_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 
-animate_200 pause
-animate_50 scale cursor 1.6
-animate_120 scale cursor 1
-animate_200 opacity app_backplate 1 && opacity app_signin_task 1 && oppacity app_transaction_list_task 1
-animate_200 pause
+schedule_eval valentyn_minutes 300 "incr(board_valentyn_seconds); if (get(board_valentyn_seconds) >= 60) { incr(board_valentyn_minutes) }"
 
-animate_500 move cursor 755 568
-animate_200 opacity highliter 1 && move cursor 739 701
+place cursor 241 323
+animate_400 move cursor 620 22
 
 animate_200 pause
 animate_50 scale cursor 1.6
 animate_120 scale cursor 1
+animate_200 opacity app_backplate 1 && opacity app_signin_task 1 && oppacity app_transaction_list_task 1 && opacity app_panel_no_track 1
+animate_200 pause
 
-animate_300 opacity highliter 0
+animate_500 move cursor 497 520
+animate_200 opacity app_task_highliter 1 && move cursor 442 673
 
-animate_300 move signin_board_task 302 252 && opacity app_signin_task 0 
-animate_100 move transaction_list_board_task 17 149 && opacity max_bord_glow_header 1 && opacity max_bord_glow_task 403 6 1
+animate_200 pause
+animate_50 scale cursor 1.6
+animate_120 scale cursor 1
+
+animate_300 opacity app_task_highliter 0
+
+animate_300 move board_signin_task 302 252 && opacity app_signin_task 0 
+animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1
 animate_200 pause
 
 `;
 
 // todo recover shadow at place - add class
-
-
 
 
 (async () => {
@@ -201,14 +235,16 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
     }
     if (cmd === 'place') {
       let args = argSets[0].split(' ');
-      await addPart(args[0], args[1], args[2], args[3], args[4]);
-    } 
-    if (cmd === 'addstyle') {
+      await addPart(...args);
+    }
+    else if (cmd === 'place_div') {
+      let args = argSets[0].split(' ');
+      await addDiv(...args);
+    }
+    else if (cmd === 'addstyle') {
       let args =  argSets[0].split(' ');
       await addStyle(args[0], args.slice(1).join(' '));
-    } 
-    
-
+    }
     else if (cmd.startsWith('animate_')) {
       const ms = +cmd.replace('animate_', '');
       const freezer = {};
@@ -220,6 +256,10 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
           const action = ags_arr[0];
           if (action === 'move') {
             const svg = ags_arr[1];
+            if (!parts[svg]) {
+              log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
+              continue;
+            }
             const dstLeft = +ags_arr[2];
             const dstTop = +ags_arr[3];
             if (!freezer[svg]) {
@@ -230,6 +270,10 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
             // log('parts[svg].left', svg, dstLeft, parts[svg].left)
           } else if (action === 'scale') {
             const svg = ags_arr[1];
+            if (!parts[svg]) {
+              log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
+              continue;
+            }
             const dstScale = +ags_arr[2];
             if (!freezer[svg]) {
               freezer[svg] = {scale: parts[svg].scale};
@@ -237,6 +281,10 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
             parts[svg].scale = freezer[svg].scale + (dstScale - freezer[svg].scale) * i / frames;
           } else if (action === 'opacity') {
             const svg = ags_arr[1];
+            if (!parts[svg]) {
+              log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
+              continue;
+            }
             const dstOpacity = +ags_arr[2];
             if (!freezer[svg]) {
               freezer[svg] = {opacity: parts[svg].opacity};

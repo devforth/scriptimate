@@ -149,9 +149,6 @@ const schedule_eval = async (name, ms, ...rest) => {
 const script = `
 place board 0 0
 
-place board_signin_task 17 149
-addstyle board_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
-
 ; valen
 place board_transaction_list_task 17 253
 addstyle board_transaction_list_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
@@ -163,14 +160,18 @@ addstyle board_valentyn_seconds color:white;font-family:'Open Sans';font-weight:
 
 schedule_eval valentyn_minutes 300 incr('board_valentyn_seconds'); if (+get('board_valentyn_seconds') >= 60) { incr('board_valentyn_minutes'); set('board_valentyn_seconds', 0)}
 
+; max inactive active task
+
+place board_signin_task 17 149
+addstyle board_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
+
 ; max active task
 place signin_board_task_active 302 252 0
 
-place_div board_max_minutes 319 296 15 14 0 "0"
-place_div board_max_seconds 319 311 15 14 0 "0"
+place_div board_max_minutes 319 294 15 14 0 "0"
+place_div board_max_seconds 319 309 15 14 0 "0"
 addstyle board_max_minutes color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
 addstyle board_max_seconds color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
-
 
 ; board
 
@@ -218,7 +219,8 @@ animate_300 opacity app_task_highliter 0
 animate_300 move board_signin_task 302 252 && opacity app_signin_task 0 
 animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1 && opacity board_max_minutes 1 && opacity board_max_seconds 1
 
-schedule_eval valentyn_minutes 300 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
+schedule_eval app_minutes 300 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
+schedule_eval board_max_minutes 300 incr('board_max_seconds'); if (+get('board_max_seconds') >= 60) { incr('board_max_minutes'); set('board_max_seconds', 0)}
 
 animate_2000 pause
 

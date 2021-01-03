@@ -39,13 +39,14 @@ const genHtml = () => {
       return a.index - b.index
   }).reduce((acc, p) => {
     if (p.type === 'part') {
-      const partHTML = `top:${p.top}px;left:${p.left}px;opacity:${p.opacity};transform:scale(${p.scale});${p.extrastyle}">${p.content}</div>`;
+      const bh = boxholes[p.toBoxHole] || {left: 0, top:0};
+
+      const partHTML = `<div style="position:${bh.name ? "absolute": "fixed"};top:${p.top-bh.top}px;left:${p.left-bh.left}px;opacity:${p.opacity};transform:scale(${p.scale});${p.extrastyle}">${p.content}</div>`;
       if (p.toBoxHole) {
-        const bh = boxholes[p.toBoxHole];
         return `${acc}<div style="position:fixed;overflow:hidden;top:${bh.top}px;left:${bh.left}px;width:${bh.w}px;height:${bh.h}px;">
-          <div style="position:relative;margin-left:${-bh.left}px;margin-top:${-bh.top}px;${partHTML}</div>`;
+          ${partHTML}</div>`;
       } else {
-        return `${acc}<div style="position:fixed;${partHTML}`;
+        return `${acc}${partHTML}`;
       }
     } else if (p.type === 'block') {
       return `${acc}<div style="position:fixed;top:${p.top}px;left:${p.left}px;width:${p.w}px;height:${p.h}px;opacity:${p.opacity};${p.extrastyle}">${p.content}</div>`

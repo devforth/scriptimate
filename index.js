@@ -166,6 +166,7 @@ const addStyle = async (part, style) => {
 
 const schedule_eval = async (name, ms, ...rest) => {
   const code = rest.join(' ');
+  // todo check that timer already scheduled and drop warn
   timers[name] = setPseudoInterval(
     () => {
       const incr = (part) => {
@@ -183,9 +184,14 @@ const schedule_eval = async (name, ms, ...rest) => {
   )
 }
 
+const unschedule = async (name) => {
+  // chack that schedulled and drop warn
+  delete timers[name];
+}
+
 const script = `
 
-init_page 1080 881 1
+init_page 1080 881 1.8
 
 place board 0 0
 
@@ -198,7 +204,7 @@ place_div board_valentyn_seconds 319 205 15 14 1 "2"
 addstyle board_valentyn_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 addstyle board_valentyn_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 
-schedule_eval valentyn_minutes 100 incr('board_valentyn_seconds'); if (+get('board_valentyn_seconds') >= 60) { incr('board_valentyn_minutes'); set('board_valentyn_seconds', 0)}
+schedule_eval valentyn_minutes 50 incr('board_valentyn_seconds'); if (+get('board_valentyn_seconds') >= 60) { incr('board_valentyn_minutes'); set('board_valentyn_seconds', 0)}
 
 ; max inactive active task
 
@@ -208,10 +214,12 @@ addstyle board_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-ra
 ; max active task
 place signin_board_task_active 302 252 0
 
+place disabled_timer 315 291 0
 place_div board_max_minutes 319 294 15 14 0 "0"
 place_div board_max_seconds 319 309 15 14 0 "0"
 addstyle board_max_minutes color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
 addstyle board_max_seconds color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
+
 
 ; board max glow
 place bord_max_glow_header 300 0 0
@@ -232,6 +240,8 @@ place app_signin_task 285 526 0.4 1 boxhole_app_area
 addstyle app_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
 place app_transaction_list_task 561 526 0.4 1 boxhole_app_area
+place app_transaction_list_unleashed 561 0 1 1 boxhole_app_area
+
 addstyle app_transaction_list_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
 place app_active_task 145 876 1 1 boxhole_app_area
@@ -256,15 +266,15 @@ place design_draw_app 40 355 0
 place_div p_input 200 493 0 0 1 " "
 place_div u_input 200 443 0 0 1 " "
 place_div u_input_text 200 443 178 37 1 ""
-place_div p_input_text 200 493 178 37 1 " "
+place_div p_input_text 200 493 178 37 1 ""
 place_div p_btn 243 570 0 0 1 " "
-place_div u_btn_text 200 493 178 37 1 " "
+place_div u_btn_text 243 570 101 37 1 ""
 
 ; scene rendered
 
-animate_1500 pause
+animate_1200 pause
 
-; place cursor and run app
+; place cursor and run tracker
 
 place cursor 241 323
 animate_400 move cursor 620 22
@@ -273,10 +283,12 @@ animate_200 pause
 animate_50 scale cursor 1.6
 animate_120 scale cursor 1
 animate_200 opacity app_backplate 1 && opacity app_signin_task 1 && oppacity app_transaction_list_task 1 && opacity app_panel_no_track 1
-animate_1500 pause
+animate_1200 pause
 
 animate_500 move cursor 497 520
 animate_200 opacity app_task_highliter 1 && move cursor 442 673
+
+; click on task to start track 
 
 animate_200 pause
 animate_50 scale cursor 1.6
@@ -287,16 +299,16 @@ animate_300 opacity app_task_highliter 0
 animate_300 move board_signin_task 302 252 && opacity app_signin_task 0 && move app_panel_no_track 1072 - && move app_active_task - 433 && move app_transaction_list_task - 0
 animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1 && opacity board_max_minutes 1 && opacity board_max_seconds 1 && move app_panel_track 960 - && opacity app_task_minutes 1 && opacity app_task_seconds 1
 
-schedule_eval app_minutes 100 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
-schedule_eval board_max_minutes 100 incr('board_max_seconds'); if (+get('board_max_seconds') >= 60) { incr('board_max_minutes'); set('board_max_seconds', 0)}
-schedule_eval app_task_minutes 100 incr('app_task_seconds'); if (+get('app_task_seconds') >= 60) { incr('app_task_minutes'); set('app_task_seconds', 0)}
+schedule_eval app_minutes 50 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
+schedule_eval board_max_minutes 50 incr('board_max_seconds'); if (+get('board_max_seconds') >= 60) { incr('board_max_minutes'); set('board_max_seconds', 0)}
+schedule_eval app_task_minutes 50 incr('app_task_seconds'); if (+get('app_task_seconds') >= 60) { incr('app_task_minutes'); set('app_task_seconds', 0)}
 
 
-animate_2000 pause
+animate_1300 pause
 
 animate_200 opacity design_draw_app 1
 
-animate_1000 pause
+animate_700 pause
 
 ; draw username
 animate_200 move cursor 200 443
@@ -307,8 +319,9 @@ addstyle u_input background: #FFFFFF;box-shadow: inset 2px 2px 4px rgba(0, 0, 0,
 animate_300 move cursor 386 472 && resize_div u_input 178 37
 animate_50 scale cursor 1
 animate_200 move cursor 200 445
-addstyle u_input_text color:B77171;display:flex;align-items:center;justify-content: left;
-schedule_eval u_input_text 200 const word = 'Username'; const t = get('u_input_text'); if (t !== word) { set('u_input_text', t + word[t.length]) }
+addstyle u_input_text color:B77171;display:flex;align-items:center;justify-content: left;font-family:'Open Sans';padding-left:10px;
+schedule_eval u_input_text 100 const word = 'Username'; const t = get('u_input_text'); if (t !== word) { set('u_input_text', t + word[t.length]) }
+animate_800 pause
 
 
 
@@ -324,8 +337,9 @@ animate_50 scale cursor 1
 
 animate_200 move cursor 200 493
 
-addstyle p_input_text color:B77171;display:flex;align-items:center;justify-content: left;
-schedule_eval p_input_text 200 const word = 'Password'; const t = get('p_input_text'); if (t !== word) { set('p_input_text', t + word[t.length]) }
+addstyle p_input_text color:B77171;display:flex;align-items:center;justify-content: left;font-family:'Open Sans';padding-left:10px;
+schedule_eval p_input_text 100 const word = 'Password'; const t = get('p_input_text'); if (t !== word) { set('p_input_text', t + word[t.length]) }
+animate_800 pause
 
 
 ; draw button
@@ -339,11 +353,11 @@ animate_50 scale cursor 1
 
 animate_200 move cursor 344 607
 
-addstyle u_btn_text color:B77171;display:flex;align-items:center;justify-content: center;
-schedule_eval u_btn_text 200 const word = 'Sign in'; const t = get('u_btn_text'); if (t !== word) { set('u_btn_text', t + word[t.length]) }
+addstyle u_btn_text color:B77171;display:flex;align-items:center;justify-content: center;font-family:'Open Sans';
+schedule_eval u_btn_text 100 const word = 'Sign in'; const t = get('u_btn_text'); if (t !== word) { set('u_btn_text', t + word[t.length]) }
 
 
-animate_1000 pause
+animate_1500 pause
 
 
 ; close draw app
@@ -354,7 +368,20 @@ animate_120 scale cursor 1
 
 animate_200 opacity design_draw_app 0 && opacity u_input 0 && opacity p_input 0 && opacity u_input_text 0 && opacity p_input_text 0 && opacity u_btn_text 0 && opacity p_btn 0
 
+; click done
 animate_2000 pause
+animate_200 move cursor 1030 835
+
+animate_50 scale cursor 1.6
+animate_120 scale cursor 1
+animate_100 opacity bord_max_glow_header 0 && opacity disabled_timer 1 && opacity app_task_minutes 0 && opacity app_task_seconds 0 && opacity signin_board_task_active 0 && opacity btn_gray_runtracker 0 && move app_panel_track 1072 - 
+animate_300 move app_active_task - 874 && move app_panel_no_track 960 - && move app_transaction_list_unleashed 419 517 && move board_signin_task 589 149 && move disabled_timer 602 188 && move board_max_minutes 607 190 && move board_max_seconds 607 205
+
+unschedule app_minutes 
+unschedule board_max_minutes
+unschedule app_task_minutes
+
+
 
 `;
 
@@ -375,7 +402,7 @@ let skipFrames = 0;
       return;
     }
     framesHTMLs.push({
-      path: `${FRAMES_DIR}/${(''+(cntr - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.png`,
+      path: `${FRAMES_DIR}/${(''+(cntr - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.jpg`,
       html,
     });
     
@@ -446,6 +473,11 @@ let skipFrames = 0;
       let args = argSets[0].split(' ');
       await schedule_eval(...args);
     }
+    else if (cmd === 'unschedule') {
+      let args = argSets[0].split(' ');
+      await unschedule(...args);
+    }
+    
     else if (cmd === 'addstyle') {
       let args =  argSets[0].split(' ');
       await addStyle(args[0], args.slice(1).join(' '));
@@ -540,7 +572,7 @@ let skipFrames = 0;
       await page.setViewport({width: pageW, height: pageH, deviceScaleFactor: 1});
       await page._client.send('Emulation.clearDeviceMetricsOverride');
       await page.setContent(o.html);
-      await page.screenshot({path: o.path});
+      await page.screenshot({path: o.path, type: 'jpeg', quality: 100});
       delete o;
       totalGenCntr += 1;
       log(`Frames gen: ${(totalGenCntr * 100.0 / framesHTMLs.length).toFixed(2)}%`, '\033[F');
@@ -551,14 +583,15 @@ let skipFrames = 0;
   await Promise.all(arrayChunks(framesHTMLs, Math.round(framesHTMLs.length / THREADS) ).map(async (ch) => await genScreenshots(ch)))
  
 
-  let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.png`, '-r', ''+FPS, `${proc_args.filename}.${proc_args.format}`, '-y'];
+  let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.jpg`, '-r', ''+FPS, `${proc_args.filename}.${proc_args.format}`, '-y'];
   if (proc_args.format === 'webm') {
-    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-b:v', '4M']
+    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '15', '-b:v', '0']
   } else if (proc_args.format === 'mp4') {
     ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264',]
   } else {
     throw exception(`Unknown format: ${proc_args.format}`);
   }
+  log(`💿 Running encoder:\nffmpeg ${ffmpeg_args.join(' ')}`)
   const ls = spawn('ffmpeg', ffmpeg_args);
 
   ls.stdout.on('data', (data) => {

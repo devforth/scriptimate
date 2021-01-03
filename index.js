@@ -24,6 +24,11 @@ const parser = new ArgumentParser({
 parser.add_argument('-v', '--version', { action: 'version', version });
 parser.add_argument('-f', '--format', { help: 'format webm or mp4', default: 'mp4' });
 parser.add_argument('-fn', '--filename', { help: 'filename', default: 'out' });
+parser.add_argument('-t', '--threads', { help: 'Threads count', default: 4 });
+parser.add_argument('-fs', '--fromsecond', { help: 'Start from second', default: 0 });
+parser.add_argument('-d', '--debughtml', { help: 'Create html files near image to debug', default: false });
+
+
 
  
 const proc_args = parser.parse_args();
@@ -193,7 +198,7 @@ place_div board_valentyn_seconds 319 205 15 14 1 "2"
 addstyle board_valentyn_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 addstyle board_valentyn_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 
-schedule_eval valentyn_minutes 500 incr('board_valentyn_seconds'); if (+get('board_valentyn_seconds') >= 60) { incr('board_valentyn_minutes'); set('board_valentyn_seconds', 0)}
+schedule_eval valentyn_minutes 100 incr('board_valentyn_seconds'); if (+get('board_valentyn_seconds') >= 60) { incr('board_valentyn_minutes'); set('board_valentyn_seconds', 0)}
 
 ; max inactive active task
 
@@ -241,13 +246,23 @@ place_div app_max_seconds 1017 478 15 14 1 "0"
 addstyle app_max_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 addstyle app_max_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 
-place_div app_task_minutes 195 800 15 14 1 "0"
-place_div app_task_seconds 195 815 15 14 1 "0"
-addstyle app_max_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
-addstyle app_max_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
+place_div app_task_minutes 195 787 15 14 0 "0"
+place_div app_task_seconds 195 802 15 14 0 "0"
+addstyle app_task_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
+addstyle app_task_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 
+place design_draw_app 40 355 0
 
-animate_2000 pause
+place_div p_input 200 493 0 0 1 " "
+place_div u_input 200 443 0 0 1 " "
+place_div u_input_text 200 443 178 37 1 ""
+place_div p_input_text 200 493 178 37 1 " "
+place_div p_btn 243 570 0 0 1 " "
+place_div u_btn_text 200 493 178 37 1 " "
+
+; scene rendered
+
+animate_1500 pause
 
 ; place cursor and run app
 
@@ -258,7 +273,7 @@ animate_200 pause
 animate_50 scale cursor 1.6
 animate_120 scale cursor 1
 animate_200 opacity app_backplate 1 && opacity app_signin_task 1 && oppacity app_transaction_list_task 1 && opacity app_panel_no_track 1
-animate_2000 pause
+animate_1500 pause
 
 animate_500 move cursor 497 520
 animate_200 opacity app_task_highliter 1 && move cursor 442 673
@@ -270,14 +285,76 @@ animate_120 scale cursor 1
 animate_300 opacity app_task_highliter 0
 
 animate_300 move board_signin_task 302 252 && opacity app_signin_task 0 && move app_panel_no_track 1072 - && move app_active_task - 433 && move app_transaction_list_task - 0
-animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1 && opacity board_max_minutes 1 && opacity board_max_seconds 1 && move app_panel_track 960 -
+animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1 && opacity board_max_minutes 1 && opacity board_max_seconds 1 && move app_panel_track 960 - && opacity app_task_minutes 1 && opacity app_task_seconds 1
 
-schedule_eval app_minutes 500 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
-schedule_eval board_max_minutes 500 incr('board_max_seconds'); if (+get('board_max_seconds') >= 60) { incr('board_max_minutes'); set('board_max_seconds', 0)}
-schedule_eval app_task_minutes 500 incr('app_task_seconds'); if (+get('app_task_seconds') >= 60) { incr('app_task_minutes'); set('app_task_seconds', 0)}
+schedule_eval app_minutes 100 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
+schedule_eval board_max_minutes 100 incr('board_max_seconds'); if (+get('board_max_seconds') >= 60) { incr('board_max_minutes'); set('board_max_seconds', 0)}
+schedule_eval app_task_minutes 100 incr('app_task_seconds'); if (+get('app_task_seconds') >= 60) { incr('app_task_minutes'); set('app_task_seconds', 0)}
 
 
-animate_5000 pause
+animate_2000 pause
+
+animate_200 opacity design_draw_app 1
+
+animate_1000 pause
+
+; draw username
+animate_200 move cursor 200 443
+animate_200 pause
+animate_50 scale cursor 1.6
+addstyle u_input background: #FFFFFF;box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.25);
+
+animate_300 move cursor 386 472 && resize_div u_input 178 37
+animate_50 scale cursor 1
+animate_200 move cursor 200 445
+addstyle u_input_text color:B77171;display:flex;align-items:center;justify-content: left;
+schedule_eval u_input_text 200 const word = 'Username'; const t = get('u_input_text'); if (t !== word) { set('u_input_text', t + word[t.length]) }
+
+
+
+; draw password
+animate_200 move cursor 200 493
+animate_200 pause
+animate_50 scale cursor 1.6
+
+addstyle p_input background: #FFFFFF;box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.25);
+
+animate_300 move cursor 386 530 && resize_div p_input 178 37
+animate_50 scale cursor 1
+
+animate_200 move cursor 200 493
+
+addstyle p_input_text color:B77171;display:flex;align-items:center;justify-content: left;
+schedule_eval p_input_text 200 const word = 'Password'; const t = get('p_input_text'); if (t !== word) { set('p_input_text', t + word[t.length]) }
+
+
+; draw button
+animate_200 move cursor 243 570
+animate_200 pause
+animate_50 scale cursor 1.6
+addstyle p_btn background: #FFFFFF;box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+
+animate_300 move cursor 344 607 && resize_div p_btn 101 37
+animate_50 scale cursor 1
+
+animate_200 move cursor 344 607
+
+addstyle u_btn_text color:B77171;display:flex;align-items:center;justify-content: center;
+schedule_eval u_btn_text 200 const word = 'Sign in'; const t = get('u_btn_text'); if (t !== word) { set('u_btn_text', t + word[t.length]) }
+
+
+animate_1000 pause
+
+
+; close draw app
+animate_200 move cursor 512 370
+animate_200 pause
+animate_50 scale cursor 1.6
+animate_120 scale cursor 1
+
+animate_200 opacity design_draw_app 0 && opacity u_input 0 && opacity p_input 0 && opacity u_input_text 0 && opacity p_input_text 0 && opacity u_btn_text 0 && opacity p_btn 0
+
+animate_2000 pause
 
 `;
 
@@ -287,21 +364,28 @@ const framesHTMLs = [];
 
 const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc.length - 1].push(e) : acc.push([e]), acc), []);
 
+let skipFrames = 0;
 
 (async () => {
 
   const doFrame = async () => {
     const html = genHtml();
+    if (cntr < skipFrames) {
+      cntr += 1;
+      return;
+    }
     framesHTMLs.push({
-      path: `${FRAMES_DIR}/${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.png`,
+      path: `${FRAMES_DIR}/${(''+(cntr - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.png`,
       html,
     });
     
-    // await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
-    //   if(err) {
-    //       return console.log(err);
-    //   }
-    // });
+    if (proc_args.debughtml) {
+      await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
+        if(err) {
+            return console.log(err);
+        }
+      });
+    }
     
     cntr += 1;
     log(`HTML pages gen: ${(cntr * 100.0 / (totalFrames + 1)).toFixed(2)}%`, '\033[F');
@@ -317,9 +401,8 @@ const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc
       totalFrames += Math.round(+cmd.replace('animate_', '') / 1.0e3 * FPS);
     }
   }
-  log(`🎥 Foramt selected: ${proc_args.format}
-Filename ${proc_args.filename}.${proc_args.format}
-🕗 Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
+
+  fsExtra.emptyDirSync(FRAMES_DIR);
 
   for (v of script.split('\n')) {
     const d1 = v.split(' ');
@@ -330,10 +413,22 @@ Filename ${proc_args.filename}.${proc_args.format}
       argSets = argSets.split('&&');
     }
     if (cmd === 'init_page') {
+      if (pageW) {
+        continue;
+      }
       const args = argSets[0].split(' ');
       pageScale = firstDefined(args[2], 1);
-      pageW = args[0] * pageScale;
-      pageH = args[1] * pageScale;
+      pageW = Math.round(args[0] * pageScale);
+      pageH = Math.round(args[1] * pageScale);
+      if (proc_args.fromsecond) {
+        skipFrames = proc_args.fromsecond * FPS;
+      }
+      log(`🎥 Foramt selected: ${proc_args.format}
+📁 Filename ${proc_args.filename}.${proc_args.format}
+📺 Resolution: ${pageW}x${pageH}
+🕗 Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}
+⏲ Start from second: ${proc_args.fromsecond}s
+  \n`);
     }
     else if (cmd === 'place') {
       let args = argSets[0].split(' ');
@@ -401,7 +496,26 @@ Filename ${proc_args.filename}.${proc_args.format}
               freezer[svg] = {opacity: parts[svg].opacity};
             }
             parts[svg].opacity = freezer[svg].opacity + (dstOpacity - freezer[svg].opacity) * i / frames;
+          } else if (action === 'resize_div') {
+            const svg = ags_arr[1];
+            if (!parts[svg]) {
+              log(`WARN: resize_div not applied, part not found: ${svg}, line: \n${cmd}\n`);
+              continue;
+            }
+            if (parts[svg].type !== 'block') {
+              log(`WARN: resize_div could be applied only to type block: not ${parts[svg].type}, part: ${svg}, line: \n${cmd}\n`);
+              continue;
+            }
+            const dstW = ags_arr[2] === '-' ? parts[svg].w : +ags_arr[2];
+            const dstH =  ags_arr[3] === '-' ? parts[svg].h : +ags_arr[3];
+            if (!freezer[svg]) {
+              freezer[svg] = {w: parts[svg].w, h: parts[svg].h};
+            }
+            parts[svg].h = freezer[svg].h + (dstH - freezer[svg].h) * i / frames;
+            parts[svg].w = freezer[svg].w + (dstW - freezer[svg].w) * i / frames;
           }
+
+          
         }
 
       }
@@ -410,10 +524,8 @@ Filename ${proc_args.filename}.${proc_args.format}
   await doFrame();
 
   log('✔  HTML generation done')
-  fsExtra.emptyDirSync(FRAMES_DIR);
-  const THREADS = 3;
+  const THREADS = + proc_args.threads;
   let totalGenCntr = 0;
-  
   
 
   const genScreenshots = async (seq) => {
@@ -422,15 +534,17 @@ Filename ${proc_args.filename}.${proc_args.format}
       '--no-sandbox',
       '--disk-cache-dir=/tmp/pup'
     ], headless: true,});
-    const page = await browser.newPage();
-    await page.setViewport({width: pageW, height: pageH, deviceScaleFactor: 1});
-    await page._client.send('Emulation.clearDeviceMetricsOverride');
+    
     for (let o of seq) {
+      const page = await browser.newPage();
+      await page.setViewport({width: pageW, height: pageH, deviceScaleFactor: 1});
+      await page._client.send('Emulation.clearDeviceMetricsOverride');
       await page.setContent(o.html);
       await page.screenshot({path: o.path});
-      
+      delete o;
       totalGenCntr += 1;
-      log(`Frames gen: ${(totalGenCntr * 100.0 / (totalFrames + 1)).toFixed(2)}%`, '\033[F');
+      log(`Frames gen: ${(totalGenCntr * 100.0 / framesHTMLs.length).toFixed(2)}%`, '\033[F');
+      await page.close();
     }
     await browser.close();
   }
@@ -439,7 +553,7 @@ Filename ${proc_args.filename}.${proc_args.format}
 
   let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.png`, '-r', ''+FPS, `${proc_args.filename}.${proc_args.format}`, '-y'];
   if (proc_args.format === 'webm') {
-    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-b:v', '2M']
+    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-b:v', '4M']
   } else if (proc_args.format === 'mp4') {
     ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264',]
   } else {

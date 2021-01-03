@@ -31,6 +31,7 @@ const proc_args = parser.parse_args();
 
 const parts = {};
 const timers = {};
+const boxholes = {};
 let html = '';
 
 const genHtml = () => {
@@ -38,7 +39,14 @@ const genHtml = () => {
       return a.index - b.index
   }).reduce((acc, p) => {
     if (p.type === 'part') {
-      return `${acc}<div style="position:fixed;top:${p.top}px;left:${p.left}px;opacity:${p.opacity};transform:scale(${p.scale});${p.extrastyle}">${p.content}</div>`
+      const partHTML = `top:${p.top}px;left:${p.left}px;opacity:${p.opacity};transform:scale(${p.scale});${p.extrastyle}">${p.content}</div>`;
+      if (p.toBoxHole) {
+        const bh = boxholes[p.toBoxHole];
+        return `${acc}<div style="position:fixed;overflow:hidden;top:${bh.top}px;left:${bh.left}px;width:${bh.w}px;height:${bh.h}px;">
+          <div style="position:relative;margin-left:${-bh.left}px;margin-top:${-bh.top}px;${partHTML}</div>`;
+      } else {
+        return `${acc}<div style="position:fixed;${partHTML}`;
+      }
     } else if (p.type === 'block') {
       return `${acc}<div style="position:fixed;top:${p.top}px;left:${p.left}px;width:${p.w}px;height:${p.h}px;opacity:${p.opacity};${p.extrastyle}">${p.content}</div>`
     }
@@ -75,7 +83,7 @@ function firstDefined(...vals) {
 }
 
 
-const addPart = async (filename, left, top, opacity, scale) => {
+const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
   const f = await readFile(`src/${filename}.svg`, 'utf-8');
   const partIds = {};
   let withUniquifiedIDs = f.replace(/id="(.*?)"/g, (_, v) => {
@@ -98,6 +106,7 @@ const addPart = async (filename, left, top, opacity, scale) => {
     index: Object.values(parts).length,
     scale: +firstDefined(scale, 1.0),
     extrastyle: '',
+    toBoxHole,
   };
   genHtml()
 };
@@ -116,6 +125,16 @@ const addDiv = async (name, left, top, w, h, opacity, ...rest) => {
     content: content,
   }
   genHtml();
+}
+
+const addBoxHole = async (name, left, top, w, h) => {
+  boxholes[name] = {
+    name,
+    top: +firstDefined(top, 0),
+    left: +firstDefined(left, 0),
+    w: +firstDefined(w, 0),
+    h: +firstDefined(h, 0),
+  }
 }
 
 const addStyle = async (part, style) => {
@@ -158,7 +177,7 @@ place_div board_valentyn_seconds 319 205 15 14 1 "2"
 addstyle board_valentyn_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 addstyle board_valentyn_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 
-schedule_eval valentyn_minutes 300 incr('board_valentyn_seconds'); if (+get('board_valentyn_seconds') >= 60) { incr('board_valentyn_minutes'); set('board_valentyn_seconds', 0)}
+schedule_eval valentyn_minutes 500 incr('board_valentyn_seconds'); if (+get('board_valentyn_seconds') >= 60) { incr('board_valentyn_minutes'); set('board_valentyn_seconds', 0)}
 
 ; max inactive active task
 
@@ -173,20 +192,28 @@ place_div board_max_seconds 319 309 15 14 0 "0"
 addstyle board_max_minutes color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
 addstyle board_max_seconds color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
 
-; board
+; board max glow
+place bord_max_glow_header 300 0 0
+
+; app
 
 place app_backplate 145 374 0.4
 addstyle app_backplate box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35)
 
-place app_panel_no_track 969 530 0.4
+place_boxhole boxhole_app_panel 960 530 112 347
+place app_panel_no_track 960 530 0.4 1 boxhole_app_panel
+place app_panel_track 1072 530 1 1 boxhole_app_panel
 
-place app_signin_task 285 526 0.4
+; app tasks
+place_boxhole boxhole_app_area 145 433 816 443
+
+place app_signin_task 285 526 0.4 1 boxhole_app_area
 addstyle app_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
-place app_transaction_list_task 561 526 0.4
+place app_transaction_list_task 561 526 0.4 1 boxhole_app_area
 addstyle app_transaction_list_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
 
-place bord_max_glow_header 300 0 0
+place app_active_task 145 876 1 1 boxhole_app_area
 
 place btn_gray_runtracker 594 2 0
 
@@ -216,11 +243,11 @@ animate_120 scale cursor 1
 
 animate_300 opacity app_task_highliter 0
 
-animate_300 move board_signin_task 302 252 && opacity app_signin_task 0 
-animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1 && opacity board_max_minutes 1 && opacity board_max_seconds 1
+animate_300 move board_signin_task 302 252 && opacity app_signin_task 0 && move app_panel_no_track 1072 - && move app_active_task - 433 && move app_transaction_list_task - 0
+animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1 && opacity board_max_minutes 1 && opacity board_max_seconds 1 && move app_panel_track 960 -
 
-schedule_eval app_minutes 300 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
-schedule_eval board_max_minutes 300 incr('board_max_seconds'); if (+get('board_max_seconds') >= 60) { incr('board_max_minutes'); set('board_max_seconds', 0)}
+schedule_eval app_minutes 500 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
+schedule_eval board_max_minutes 500 incr('board_max_seconds'); if (+get('board_max_seconds') >= 60) { incr('board_max_minutes'); set('board_max_seconds', 0)}
 
 animate_2000 pause
 
@@ -280,6 +307,10 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
       let args = argSets[0].split(' ');
       await addDiv(...args);
     }
+    else if (cmd === 'place_boxhole') {
+      let args = argSets[0].split(' ');
+      await addBoxHole(...args);
+    }
     else if (cmd === 'schedule_eval') {
       let args = argSets[0].split(' ');
       await schedule_eval(...args);
@@ -303,8 +334,8 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
               log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
               continue;
             }
-            const dstLeft = +ags_arr[2];
-            const dstTop = +ags_arr[3];
+            const dstLeft = ags_arr[2] === '-' ? parts[svg].left : +ags_arr[2];
+            const dstTop =  ags_arr[3] === '-' ? parts[svg].top : +ags_arr[3];
             if (!freezer[svg]) {
               freezer[svg] = {top: parts[svg].top, left: parts[svg].left};
             }
@@ -343,7 +374,7 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
 
 
 
-
+  Object.values(timers).forEach((t) => {clearInterval(t)});
   await browser.close();
   log('Frames generation done')
 

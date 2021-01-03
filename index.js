@@ -1,9 +1,8 @@
 
-const fs = require('fs');
+const {promises: fs} = require('fs');
 const util = require('util');
 const puppeteer = require('puppeteer');
 const short = require('short-uuid');
-const readFile = util.promisify(fs.readFile);
 const { spawn } = require('child_process');
 const fsExtra = require('fs-extra')
 const { ArgumentParser } = require('argparse');
@@ -32,7 +31,9 @@ const proc_args = parser.parse_args();
 const parts = {};
 const timers = {};
 const boxholes = {};
-let html = '';
+let pageScale = 1;
+let pageW;
+let pageH;
 
 const genHtml = () => {
   const inner = Object.values(parts).sort((a,b) => {
@@ -52,7 +53,7 @@ const genHtml = () => {
       return `${acc}<div style="position:fixed;top:${p.top}px;left:${p.left}px;width:${p.w}px;height:${p.h}px;opacity:${p.opacity};${p.extrastyle}">${p.content}</div>`
     }
   }, '');
-  html = `<html>
+  return `<html>
       <head>
         <link rel="preconnect" href="https://fonts.gstatic.com">
         <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
@@ -63,7 +64,8 @@ const genHtml = () => {
         }
         body {
           transform-origin: top left;
-          transform: scale(1);
+          transform: scale(${pageScale});
+          margin: 0;
         }
         </style>
       </head>
@@ -85,7 +87,7 @@ function firstDefined(...vals) {
 
 
 const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
-  const f = await readFile(`src/${filename}.svg`, 'utf-8');
+  const f = await fs.readFile(`src/${filename}.svg`, 'utf-8');
   const partIds = {};
   let withUniquifiedIDs = f.replace(/id="(.*?)"/g, (_, v) => {
     if (!partIds[v]) {
@@ -99,7 +101,6 @@ const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
   parts[filename] = {
     type: 'part',
     filename,
-    // todo remove ugly fix
     content: withUniquifiedIDs,
     top: +firstDefined(top, 0),
     left: +firstDefined(left, 0),
@@ -109,7 +110,6 @@ const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
     extrastyle: '',
     toBoxHole,
   };
-  genHtml()
 };
 
 const addDiv = async (name, left, top, w, h, opacity, ...rest) => {
@@ -125,7 +125,6 @@ const addDiv = async (name, left, top, w, h, opacity, ...rest) => {
     index: Object.values(parts).length,
     content: content,
   }
-  genHtml();
 }
 
 const addBoxHole = async (name, left, top, w, h) => {
@@ -138,6 +137,20 @@ const addBoxHole = async (name, left, top, w, h) => {
   }
 }
 
+const setPseudoInterval = (f, ms) => {
+  const o = {
+    t: 0,
+    tick(passed_ms) {
+      this.t += passed_ms;
+      if (this.t >= ms) {
+        f();
+        this.t = 0;
+      }
+    }
+  }
+  return o;
+}
+
 const addStyle = async (part, style) => {
   if (!parts[part]) {
     log(`WARN: style not applied, part not found: ${part}`)
@@ -148,7 +161,7 @@ const addStyle = async (part, style) => {
 
 const schedule_eval = async (name, ms, ...rest) => {
   const code = rest.join(' ');
-  timers[name] = setInterval(
+  timers[name] = setPseudoInterval(
     () => {
       const incr = (part) => {
         parts[part].content = +parts[part].content + 1;
@@ -160,13 +173,15 @@ const schedule_eval = async (name, ms, ...rest) => {
         parts[part].content = value;
       }
       eval(code)
-      genHtml();
     },
     +ms
   )
 }
 
 const script = `
+
+init_page 1080 881 1
+
 place board 0 0
 
 ; valen
@@ -196,7 +211,7 @@ addstyle board_max_seconds color:white;font-family:'Open Sans';font-weight:bold;
 ; board max glow
 place bord_max_glow_header 300 0 0
 
-; app
+; place app
 
 place app_backplate 145 374 0.4
 addstyle app_backplate box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35)
@@ -226,6 +241,16 @@ place_div app_max_seconds 1017 478 15 14 1 "0"
 addstyle app_max_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 addstyle app_max_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
 
+place_div app_task_minutes 195 800 15 14 1 "0"
+place_div app_task_seconds 195 815 15 14 1 "0"
+addstyle app_max_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
+addstyle app_max_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
+
+
+animate_2000 pause
+
+; place cursor and run app
+
 place cursor 241 323
 animate_400 move cursor 620 22
 
@@ -233,7 +258,7 @@ animate_200 pause
 animate_50 scale cursor 1.6
 animate_120 scale cursor 1
 animate_200 opacity app_backplate 1 && opacity app_signin_task 1 && oppacity app_transaction_list_task 1 && opacity app_panel_no_track 1
-animate_200 pause
+animate_2000 pause
 
 animate_500 move cursor 497 520
 animate_200 opacity app_task_highliter 1 && move cursor 442 673
@@ -249,36 +274,40 @@ animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_hea
 
 schedule_eval app_minutes 500 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
 schedule_eval board_max_minutes 500 incr('board_max_seconds'); if (+get('board_max_seconds') >= 60) { incr('board_max_minutes'); set('board_max_seconds', 0)}
+schedule_eval app_task_minutes 500 incr('app_task_seconds'); if (+get('app_task_seconds') >= 60) { incr('app_task_minutes'); set('app_task_seconds', 0)}
 
-animate_2000 pause
+
+animate_5000 pause
 
 `;
 
 // todo recover shadow at place - add class
 
+const framesHTMLs = [];
+
+const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc.length - 1].push(e) : acc.push([e]), acc), []);
+
 
 (async () => {
-  fsExtra.emptyDirSync(FRAMES_DIR);
-  const browser = await puppeteer.launch({args: ['--window-size=2320,1000'],});
-  const page = await browser.newPage();
 
   const doFrame = async () => {
-    genHtml()
-    await page.setContent(html);
-    fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
-      if(err) {
-          return console.log(err);
-      }
+    const html = genHtml();
+    framesHTMLs.push({
+      path: `${FRAMES_DIR}/${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.png`,
+      html,
     });
-  
-    await page.screenshot({path: `${FRAMES_DIR}/${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.png`});
+    
+    // await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
+    //   if(err) {
+    //       return console.log(err);
+    //   }
+    // });
+    
     cntr += 1;
-    log(`Frames gen: ${(cntr * 100.0 / (totalFrames + 1)).toFixed(2)}%`, '\033[F')
+    log(`HTML pages gen: ${(cntr * 100.0 / (totalFrames + 1)).toFixed(2)}%`, '\033[F');
   }
 
-  await page.setViewport({width: 2320, height: 0, deviceScaleFactor:2});
-  await page._client.send('Emulation.clearDeviceMetricsOverride');
-
+  
   let totalMs = 0;
   for (v of script.split('\n')) {
     const d1 = v.split(' ');
@@ -288,19 +317,25 @@ animate_2000 pause
       totalFrames += Math.round(+cmd.replace('animate_', '') / 1.0e3 * FPS);
     }
   }
-  log(`Foramt selected: ${proc_args.format}
+  log(`🎥 Foramt selected: ${proc_args.format}
 Filename ${proc_args.filename}.${proc_args.format}
-Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
+🕗 Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
 
   for (v of script.split('\n')) {
     const d1 = v.split(' ');
     const cmd = d1[0];
     let argSets = d1.slice(1).join(' ');
-
+    
     if (argSets) {
       argSets = argSets.split('&&');
     }
-    if (cmd === 'place') {
+    if (cmd === 'init_page') {
+      const args = argSets[0].split(' ');
+      pageScale = firstDefined(args[2], 1);
+      pageW = args[0] * pageScale;
+      pageH = args[1] * pageScale;
+    }
+    else if (cmd === 'place') {
       let args = argSets[0].split(' ');
       await addPart(...args);
     }
@@ -325,6 +360,7 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
       const freezer = {};
       const frames = Math.round(ms / 1.0e3 * FPS);
       for (i = 1; i <= frames; i += 1) {
+        Object.values(timers).forEach((t) => t.tick(1000.0 / FPS));
         await doFrame();
         for (let ags of argSets) {
           const ags_arr = ags.trim().split(' ');
@@ -373,12 +409,33 @@ Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}  \n`);
   }
   await doFrame();
 
+  log('✔  HTML generation done')
+  fsExtra.emptyDirSync(FRAMES_DIR);
+  const THREADS = 3;
+  let totalGenCntr = 0;
+  
+  
 
-
-  Object.values(timers).forEach((t) => {clearInterval(t)});
-  await browser.close();
-  log('Frames generation done')
-
+  const genScreenshots = async (seq) => {
+    const browser = await puppeteer.launch({args: [
+      `--window-size=${pageW},${pageH}`, 
+      '--no-sandbox',
+      '--disk-cache-dir=/tmp/pup'
+    ], headless: true,});
+    const page = await browser.newPage();
+    await page.setViewport({width: pageW, height: pageH, deviceScaleFactor: 1});
+    await page._client.send('Emulation.clearDeviceMetricsOverride');
+    for (let o of seq) {
+      await page.setContent(o.html);
+      await page.screenshot({path: o.path});
+      
+      totalGenCntr += 1;
+      log(`Frames gen: ${(totalGenCntr * 100.0 / (totalFrames + 1)).toFixed(2)}%`, '\033[F');
+    }
+    await browser.close();
+  }
+  await Promise.all(arrayChunks(framesHTMLs, Math.round(framesHTMLs.length / THREADS) ).map(async (ch) => await genScreenshots(ch)))
+ 
 
   let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.png`, '-r', ''+FPS, `${proc_args.filename}.${proc_args.format}`, '-y'];
   if (proc_args.format === 'webm') {

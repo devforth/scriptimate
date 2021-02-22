@@ -1,6 +1,6 @@
 {
   "name": "scriptimate",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "",
   "main": "bin/index.js",
   "scripts": {
@@ -14,6 +14,9 @@
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/devforth/scriptimate/issues"
+  },
+  "bin": {
+    "scriptimate" : "bin/scriptimate.js"
   },
   "homepage": "https://github.com/devforth/scriptimate#readme",
   "dependencies": {

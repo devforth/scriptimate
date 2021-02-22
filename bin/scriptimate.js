@@ -7,7 +7,7 @@ const short = require('short-uuid');
 const { spawn } = require('child_process');
 const fsExtra = require('fs-extra')
 const { ArgumentParser } = require('argparse');
-const { version } = require('./package.json');
+const { version } = require('../package.json');
 const { exception } = require('console');
  
 const log = console.log;

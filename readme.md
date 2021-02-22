@@ -25,13 +25,13 @@ cd demo1
 MP4 used by default (faster compile, less optimized)
 
 ```
-npx run scriptimate
+npx scriptimate
 ``
 
 To output in `webm`:
 
 ```
-npx run scriptimate -f webm
+npx scriptimate -f webm
 ```
 
 

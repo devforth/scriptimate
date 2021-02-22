@@ -190,7 +190,7 @@ const unschedule = async (name) => {
   delete timers[name];
 }
 
-const script = fsExtra.readFileSync(proc_args.input);
+const script = fsExtra.readFileSync(proc_args.input).toString();
 if (! script) {
   throw "Please specify .smte file e.g. -i demo.smte"
 }

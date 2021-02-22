@@ -1,6 +1,6 @@
 {
   "name": "scriptimate",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "",
   "main": "bin/index.js",
   "scripts": {

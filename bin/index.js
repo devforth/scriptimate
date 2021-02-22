@@ -190,9 +190,9 @@ const unschedule = async (name) => {
   delete timers[name];
 }
 
-const script = await fs.readFile(proc_args.input);
+const script = fs.readFileSync(proc_args.input);
 if (! script) {
-  throw "Please specify .scrp file e.g. -i demo.scrp"
+  throw "Please specify .smte file e.g. -i demo.smte"
 }
 
 

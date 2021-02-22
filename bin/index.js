@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 
 const {promises: fs} = require('fs');
 const util = require('util');
@@ -27,7 +28,7 @@ parser.add_argument('-fn', '--filename', { help: 'filename', default: 'out' });
 parser.add_argument('-t', '--threads', { help: 'Threads count', default: 4 });
 parser.add_argument('-fs', '--fromsecond', { help: 'Start from second', default: 0 });
 parser.add_argument('-d', '--debughtml', { help: 'Create html files near image to debug', default: false });
-
+parser.add_argument('-i', '--input', { help: 'Input .scrp file', default: null });
 
 
  
@@ -189,203 +190,11 @@ const unschedule = async (name) => {
   delete timers[name];
 }
 
-const script = `
+const script = await fs.readFile(proc_args.input);
+if (! script) {
+  throw "Please specify .scrp file e.g. -i demo.scrp"
+}
 
-init_page 1080 881 1.8
-
-place board 0 0
-
-; valen
-place board_transaction_list_task 17 253
-addstyle board_transaction_list_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
-
-place_div board_valentyn_minutes 319 190 15 14 1 "18"
-place_div board_valentyn_seconds 319 205 15 14 1 "2"
-addstyle board_valentyn_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
-addstyle board_valentyn_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
-
-schedule_eval valentyn_minutes 50 incr('board_valentyn_seconds'); if (+get('board_valentyn_seconds') >= 60) { incr('board_valentyn_minutes'); set('board_valentyn_seconds', 0)}
-
-; max inactive active task
-
-place board_signin_task 17 149
-addstyle board_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
-
-; max active task
-place signin_board_task_active 302 252 0
-
-place disabled_timer 315 291 0
-place_div board_max_minutes 319 294 15 14 0 "0"
-place_div board_max_seconds 319 309 15 14 0 "0"
-addstyle board_max_minutes color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
-addstyle board_max_seconds color:white;font-family:'Open Sans';font-weight:bold;font-size:12px;text-align:right;
-
-
-; board max glow
-place bord_max_glow_header 300 0 0
-
-; place app
-
-place app_backplate 145 374 0.4
-addstyle app_backplate box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35)
-
-place_boxhole boxhole_app_panel 960 530 112 347
-place app_panel_no_track 960 530 0.4 1 boxhole_app_panel
-place app_panel_track 1072 530 1 1 boxhole_app_panel
-
-; app tasks
-place_boxhole boxhole_app_area 145 433 816 443
-
-place app_signin_task 285 526 0.4 1 boxhole_app_area
-addstyle app_signin_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
-
-place app_transaction_list_task 561 526 0.4 1 boxhole_app_area
-place app_transaction_list_unleashed 561 0 1 1 boxhole_app_area
-
-addstyle app_transaction_list_task box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.35);border-radius:5px
-
-place app_active_task 145 876 1 1 boxhole_app_area
-
-place btn_gray_runtracker 594 2 0
-
-place app_task_highliter 285 526 0.0
-
-
-place_div app_max_minutes 1017 463 15 14 1 "0"
-place_div app_max_seconds 1017 478 15 14 1 "0"
-addstyle app_max_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
-addstyle app_max_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
-
-place_div app_task_minutes 195 787 15 14 0 "0"
-place_div app_task_seconds 195 802 15 14 0 "0"
-addstyle app_task_minutes color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
-addstyle app_task_seconds color:white;font-family:'Open Sans';font-weight: bold;font-size:12px;text-align: right;
-
-place design_draw_app 40 355 0
-
-place_div p_input 200 493 0 0 1 " "
-place_div u_input 200 443 0 0 1 " "
-place_div u_input_text 200 443 178 37 1 ""
-place_div p_input_text 200 493 178 37 1 ""
-place_div p_btn 243 570 0 0 1 " "
-place_div u_btn_text 243 570 101 37 1 ""
-
-; scene rendered
-
-animate_1200 pause
-
-; place cursor and run tracker
-
-place cursor 241 323
-animate_400 move cursor 620 22
-
-animate_200 pause
-animate_50 scale cursor 1.6
-animate_120 scale cursor 1
-animate_200 opacity app_backplate 1 && opacity app_signin_task 1 && oppacity app_transaction_list_task 1 && opacity app_panel_no_track 1
-animate_1200 pause
-
-animate_500 move cursor 497 520
-animate_200 opacity app_task_highliter 1 && move cursor 442 673
-
-; click on task to start track 
-
-animate_200 pause
-animate_50 scale cursor 1.6
-animate_120 scale cursor 1
-
-animate_300 opacity app_task_highliter 0
-
-animate_300 move board_signin_task 302 252 && opacity app_signin_task 0 && move app_panel_no_track 1072 - && move app_active_task - 433 && move app_transaction_list_task - 0
-animate_100 move board_transaction_list_task 17 149 && opacity bord_max_glow_header 1 && opacity signin_board_task_active 1 && opacity btn_gray_runtracker 1 && opacity board_max_minutes 1 && opacity board_max_seconds 1 && move app_panel_track 960 - && opacity app_task_minutes 1 && opacity app_task_seconds 1
-
-schedule_eval app_minutes 50 incr('app_max_seconds'); if (+get('app_max_seconds') >= 60) { incr('app_max_minutes'); set('app_max_seconds', 0)}
-schedule_eval board_max_minutes 50 incr('board_max_seconds'); if (+get('board_max_seconds') >= 60) { incr('board_max_minutes'); set('board_max_seconds', 0)}
-schedule_eval app_task_minutes 50 incr('app_task_seconds'); if (+get('app_task_seconds') >= 60) { incr('app_task_minutes'); set('app_task_seconds', 0)}
-
-
-animate_1300 pause
-
-animate_200 opacity design_draw_app 1
-
-animate_700 pause
-
-; draw username
-animate_200 move cursor 200 443
-animate_200 pause
-animate_50 scale cursor 1.6
-addstyle u_input background: #FFFFFF;box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.25);
-
-animate_300 move cursor 386 472 && resize_div u_input 178 37
-animate_50 scale cursor 1
-animate_200 move cursor 200 445
-addstyle u_input_text color:B77171;display:flex;align-items:center;justify-content: left;font-family:'Open Sans';padding-left:10px;
-schedule_eval u_input_text 100 const word = 'Username'; const t = get('u_input_text'); if (t !== word) { set('u_input_text', t + word[t.length]) }
-animate_800 pause
-
-
-
-; draw password
-animate_200 move cursor 200 493
-animate_200 pause
-animate_50 scale cursor 1.6
-
-addstyle p_input background: #FFFFFF;box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.25);
-
-animate_300 move cursor 386 530 && resize_div p_input 178 37
-animate_50 scale cursor 1
-
-animate_200 move cursor 200 493
-
-addstyle p_input_text color:B77171;display:flex;align-items:center;justify-content: left;font-family:'Open Sans';padding-left:10px;
-schedule_eval p_input_text 100 const word = 'Password'; const t = get('p_input_text'); if (t !== word) { set('p_input_text', t + word[t.length]) }
-animate_800 pause
-
-
-; draw button
-animate_200 move cursor 243 570
-animate_200 pause
-animate_50 scale cursor 1.6
-addstyle p_btn background: #FFFFFF;box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-
-animate_300 move cursor 344 607 && resize_div p_btn 101 37
-animate_50 scale cursor 1
-
-animate_200 move cursor 344 607
-
-addstyle u_btn_text color:B77171;display:flex;align-items:center;justify-content: center;font-family:'Open Sans';
-schedule_eval u_btn_text 100 const word = 'Sign in'; const t = get('u_btn_text'); if (t !== word) { set('u_btn_text', t + word[t.length]) }
-
-
-animate_1500 pause
-
-
-; close draw app
-animate_200 move cursor 512 370
-animate_200 pause
-animate_50 scale cursor 1.6
-animate_120 scale cursor 1
-
-animate_200 opacity design_draw_app 0 && opacity u_input 0 && opacity p_input 0 && opacity u_input_text 0 && opacity p_input_text 0 && opacity u_btn_text 0 && opacity p_btn 0
-
-; click done
-animate_2000 pause
-animate_200 move cursor 1030 835
-
-animate_50 scale cursor 1.6
-animate_120 scale cursor 1
-animate_100 opacity bord_max_glow_header 0 && opacity disabled_timer 1 && opacity app_task_minutes 0 && opacity app_task_seconds 0 && opacity signin_board_task_active 0 && opacity btn_gray_runtracker 0 && move app_panel_track 1072 - 
-animate_300 move app_active_task - 874 && move app_panel_no_track 960 - && move app_transaction_list_unleashed 419 517 && move board_signin_task 589 149 && move disabled_timer 602 188 && move board_max_minutes 607 190 && move board_max_seconds 607 205
-
-unschedule app_minutes 
-unschedule board_max_minutes
-unschedule app_task_minutes
-
-
-
-`;
-
-// todo recover shadow at place - add class
 
 const framesHTMLs = [];
 
@@ -454,7 +263,7 @@ let skipFrames = 0;
 📁 Filename ${proc_args.filename}.${proc_args.format}
 📺 Resolution: ${pageW}x${pageH}
 🕗 Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}
-⏲ Start from second: ${proc_args.fromsecond}s
+✂ Start from second: ${proc_args.fromsecond}s
   \n`);
     }
     else if (cmd === 'place') {
@@ -555,7 +364,7 @@ let skipFrames = 0;
   }
   await doFrame();
 
-  log('✔  HTML generation done')
+  log('✅ HTML generation done')
   const THREADS = + proc_args.threads;
   let totalGenCntr = 0;
   
@@ -577,17 +386,24 @@ let skipFrames = 0;
       totalGenCntr += 1;
       log(`Frames gen: ${(totalGenCntr * 100.0 / framesHTMLs.length).toFixed(2)}%`, '\033[F');
       await page.close();
+      try {
+        if (global.gc) {global.gc();}
+      } catch (e) {
+        console.log("`node --expose-gc index.js`");
+        process.exit();
+      }
     }
     await browser.close();
   }
   await Promise.all(arrayChunks(framesHTMLs, Math.round(framesHTMLs.length / THREADS) ).map(async (ch) => await genScreenshots(ch)))
- 
+  log('✅ Frames generation done')
+  
 
-  let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.jpg`, '-r', ''+FPS, `${proc_args.filename}.${proc_args.format}`, '-y'];
+  let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.jpg`, ];
   if (proc_args.format === 'webm') {
-    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '15', '-b:v', '0']
+    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${proc_args.filename}.${proc_args.format}`, '-y']
   } else if (proc_args.format === 'mp4') {
-    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264',]
+    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${proc_args.filename}.${proc_args.format}`, '-y']
   } else {
     throw exception(`Unknown format: ${proc_args.format}`);
   }

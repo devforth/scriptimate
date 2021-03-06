@@ -96,6 +96,8 @@ function firstDefined(...vals) {
   return undefined;
 }
 
+let add_part_counter = 0;
+
 const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
   const f = await fs.readFile(`${proc_args.basedir}/src/${filename}.svg`, 'utf-8');
   const partIds = {};
@@ -115,7 +117,7 @@ const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
     top: +firstDefined(eval(top), 0),
     left: +firstDefined(eval(left), 0),
     opacity: +firstDefined(eval(opacity), 1),
-    index: Object.values(parts).length,
+    index: add_part_counter++,
     scale: +firstDefined(scale, 1.0),
     rotate: +firstDefined(0, 0),
     extrastyle: '',

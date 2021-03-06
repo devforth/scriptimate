@@ -1,10 +1,10 @@
 {
   "name": "scriptimate",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "",
   "main": "bin/index.js",
   "scripts": {
-    "scriptimate": "node --max_old_space_size=7096 іindex.js"
+    "scriptimate": "node --max_old_space_size=7096 іndex.js"
   },
   "repository": {
     "type": "git",

@@ -10,12 +10,13 @@ const { ArgumentParser } = require('argparse');
 const { version } = require('../package.json');
 const { exception } = require('console');
  
+
 const log = console.log;
 const FPS = 25;
 const MAX_FILENAME_DIGS = 7;
 let cntr = 0;
 let totalFrames = 0;
-const FRAMES_DIR = 'frames';
+let FRAMES_DIR = 'frames';
 
 
 const parser = new ArgumentParser({
@@ -29,10 +30,14 @@ parser.add_argument('-t', '--threads', { help: 'Threads count', default: 4 });
 parser.add_argument('-fs', '--fromsecond', { help: 'Start from second', default: 0 });
 parser.add_argument('-d', '--debughtml', { help: 'Create html files near image to debug', default: false });
 parser.add_argument('-i', '--input', { help: 'Input .scrp file', default: null });
+parser.add_argument('-bd', '--basedir', { help: 'Input dir', default: './' });
+
 
 
  
 const proc_args = parser.parse_args();
+
+FRAMES_DIR = proc_args.basedir + '/' + FRAMES_DIR;
 
 const parts = {};
 const timers = {};
@@ -48,7 +53,7 @@ const genHtml = () => {
     if (p.type === 'part') {
       const bh = boxholes[p.toBoxHole] || {left: 0, top:0};
 
-      const partHTML = `<div style="position:${bh.name ? "absolute": "fixed"};top:${p.top-bh.top}px;left:${p.left-bh.left}px;opacity:${p.opacity};transform:scale(${p.scale});${p.extrastyle}">${p.content}</div>`;
+      const partHTML = `<div style="position:${bh.name ? "absolute": "fixed"};top:${p.top-bh.top}px;left:${p.left-bh.left}px;opacity:${p.opacity};transform:scale(${p.scale}) rotate(${p.rotate}deg);${p.extrastyle}">${p.content}</div>`;
       if (p.toBoxHole) {
         return `${acc}<div style="position:fixed;overflow:hidden;top:${bh.top}px;left:${bh.left}px;width:${bh.w}px;height:${bh.h}px;">
           ${partHTML}</div>`;
@@ -91,9 +96,8 @@ function firstDefined(...vals) {
   return undefined;
 }
 
-
 const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
-  const f = await fs.readFile(`src/${filename}.svg`, 'utf-8');
+  const f = await fs.readFile(`${proc_args.basedir}/src/${filename}.svg`, 'utf-8');
   const partIds = {};
   let withUniquifiedIDs = f.replace(/id="(.*?)"/g, (_, v) => {
     if (!partIds[v]) {
@@ -108,27 +112,30 @@ const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
     type: 'part',
     filename,
     content: withUniquifiedIDs,
-    top: +firstDefined(top, 0),
-    left: +firstDefined(left, 0),
-    opacity: +firstDefined(opacity, 1),
+    top: +firstDefined(eval(top), 0),
+    left: +firstDefined(eval(left), 0),
+    opacity: +firstDefined(eval(opacity), 1),
     index: Object.values(parts).length,
     scale: +firstDefined(scale, 1.0),
+    rotate: +firstDefined(0, 0),
     extrastyle: '',
     toBoxHole,
   };
 };
 
-const addDiv = async (name, left, top, w, h, opacity, ...rest) => {
-  const content = rest.join(' ').replaceAll('"', '').replaceAll("'", '');
+const addDiv = async (name, left, top, w, h, opacity, c, ...rest) => {
+  //+rest.join(' ').replaceAll('"', '').replaceAll("'", '')
+  const content = eval(c);
   parts[name] = {
     type: 'block',
     name,
-    top: +firstDefined(top, 0),
-    left: +firstDefined(left, 0),
+    top: +firstDefined(eval(top), 0),
+    left: +firstDefined(eval(left), 0),
     opacity: +firstDefined(opacity, 1),
-    w: +firstDefined(w, 0),
-    h: +firstDefined(h, 0),
+    w: +firstDefined(eval(w), 0),
+    h: +firstDefined(eval(h), 0),
     index: Object.values(parts).length,
+    rotate: +firstDefined(0, 0),
     content: content,
   }
 }
@@ -136,10 +143,10 @@ const addDiv = async (name, left, top, w, h, opacity, ...rest) => {
 const addBoxHole = async (name, left, top, w, h) => {
   boxholes[name] = {
     name,
-    top: +firstDefined(top, 0),
-    left: +firstDefined(left, 0),
-    w: +firstDefined(w, 0),
-    h: +firstDefined(h, 0),
+    top: +firstDefined(eval(top), 0),
+    left: +firstDefined(eval(left), 0),
+    w: +firstDefined(eval(w), 0),
+    h: +firstDefined(eval(h), 0),
   }
 }
 
@@ -172,12 +179,14 @@ const schedule_eval = async (name, ms, ...rest) => {
     () => {
       const incr = (part) => {
         parts[part].content = +parts[part].content + 1;
+        global[part+'_value'] = parts[part].content
       }
       const get = (part) => {
         return parts[part].content;
       }
       const set = (part, value) => {
-        parts[part].content = value;
+        parts[part].content = eval(value);
+        global[part+'_value'] = eval(value)
       }
       eval(code)
     },
@@ -189,8 +198,7 @@ const unschedule = async (name) => {
   // chack that schedulled and drop warn
   delete timers[name];
 }
-
-const script = fsExtra.readFileSync(proc_args.input).toString();
+const script = fsExtra.readFileSync(proc_args.basedir + '/' + proc_args.input).toString();
 if (! script) {
   throw "Please specify .smte file e.g. -i demo.smte"
 }
@@ -266,7 +274,12 @@ let skipFrames = 0;
 ✂ Start from second: ${proc_args.fromsecond}s
   \n`);
     }
-    else if (cmd === 'place') {
+    else if (cmd === 'var'){
+      argSets[0].split(' ').forEach((s)=>{
+        let v = s.split('=')
+        global[v[0]] = eval(v[1])
+      })
+    }else if (cmd === 'place') {
       let args = argSets[0].split(' ');
       await addPart(...args);
     }
@@ -307,8 +320,8 @@ let skipFrames = 0;
               log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
               continue;
             }
-            const dstLeft = ags_arr[2] === '-' ? parts[svg].left : +ags_arr[2];
-            const dstTop =  ags_arr[3] === '-' ? parts[svg].top : +ags_arr[3];
+            const dstLeft = ags_arr[2] === '-' ? parts[svg].left : eval(ags_arr[2]);
+            const dstTop =  ags_arr[3] === '-' ? parts[svg].top : eval(ags_arr[3]);
             if (!freezer[svg]) {
               freezer[svg] = {top: parts[svg].top, left: parts[svg].left};
             }
@@ -326,6 +339,17 @@ let skipFrames = 0;
               freezer[svg] = {scale: parts[svg].scale};
             }
             parts[svg].scale = freezer[svg].scale + (dstScale - freezer[svg].scale) * i / frames;
+          } else if (action === 'rotate') {
+            const svg = ags_arr[1];
+            if (!parts[svg]) {
+              log(`WARN: rotate not applied, part not found: ${svg}, line: \n${cmd}\n`);
+              continue;
+            }
+            const dstRotate = +ags_arr[2];
+            if (!freezer[svg]) {
+              freezer[svg] = {rotate: parts[svg].rotate};
+            }
+            parts[svg].rotate = freezer[svg].rotate + (dstRotate - freezer[svg].rotate) * i / frames;
           } else if (action === 'opacity') {
             const svg = ags_arr[1];
             if (!parts[svg]) {
@@ -424,3 +448,7 @@ let skipFrames = 0;
   
 
 })();
+
+function calcValue(str){
+
+}

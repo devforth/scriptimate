@@ -324,11 +324,11 @@ let skipFrames = 0;
             }
             const dstLeft = ags_arr[2] === '-' ? parts[svg].left : eval(ags_arr[2]);
             const dstTop =  ags_arr[3] === '-' ? parts[svg].top : eval(ags_arr[3]);
-            if (!freezer[svg]) {
-              freezer[svg] = {top: parts[svg].top, left: parts[svg].left};
+            if (!freezer[`${svg}___${action}`]) {
+              freezer[`${svg}___${action}`] = {top: parts[svg].top, left: parts[svg].left};
             }
-            parts[svg].top = freezer[svg].top + (dstTop - freezer[svg].top) * i / frames;
-            parts[svg].left = freezer[svg].left + (dstLeft - freezer[svg].left) * i / frames;
+            parts[svg].top = freezer[`${svg}___${action}`].top + (dstTop - freezer[`${svg}___${action}`].top) * i / frames;
+            parts[svg].left = freezer[`${svg}___${action}`].left + (dstLeft - freezer[`${svg}___${action}`].left) * i / frames;
             // log('parts[svg].left', svg, dstLeft, parts[svg].left)
           } else if (action === 'scale') {
             const svg = ags_arr[1];
@@ -337,10 +337,10 @@ let skipFrames = 0;
               continue;
             }
             const dstScale = +ags_arr[2];
-            if (!freezer[svg]) {
-              freezer[svg] = {scale: parts[svg].scale};
+            if (!freezer[`${svg}___${action}`]) {
+              freezer[`${svg}___${action}`] = {scale: parts[svg].scale};
             }
-            parts[svg].scale = freezer[svg].scale + (dstScale - freezer[svg].scale) * i / frames;
+            parts[svg].scale = freezer[`${svg}___${action}`].scale + (dstScale - freezer[`${svg}___${action}`].scale) * i / frames;
           } else if (action === 'rotate') {
             const svg = ags_arr[1];
             if (!parts[svg]) {
@@ -348,10 +348,10 @@ let skipFrames = 0;
               continue;
             }
             const dstRotate = +ags_arr[2];
-            if (!freezer[svg]) {
-              freezer[svg] = {rotate: parts[svg].rotate};
+            if (!freezer[`${svg}___${action}`]) {
+              freezer[`${svg}___${action}`] = {rotate: parts[svg].rotate};
             }
-            parts[svg].rotate = freezer[svg].rotate + (dstRotate - freezer[svg].rotate) * i / frames;
+            parts[svg].rotate = freezer[`${svg}___${action}`].rotate + (dstRotate - freezer[`${svg}___${action}`].rotate) * i / frames;
           } else if (action === 'opacity') {
             const svg = ags_arr[1];
             if (!parts[svg]) {
@@ -359,10 +359,10 @@ let skipFrames = 0;
               continue;
             }
             const dstOpacity = +ags_arr[2];
-            if (!freezer[svg]) {
-              freezer[svg] = {opacity: parts[svg].opacity};
+            if (!freezer[`${svg}___${action}`]) {
+              freezer[`${svg}___${action}`] = {opacity: parts[svg].opacity};
             }
-            parts[svg].opacity = freezer[svg].opacity + (dstOpacity - freezer[svg].opacity) * i / frames;
+            parts[svg].opacity = freezer[`${svg}___${action}`].opacity + (dstOpacity - freezer[`${svg}___${action}`].opacity) * i / frames;
           } else if (action === 'resize_div') {
             const svg = ags_arr[1];
             if (!parts[svg]) {
@@ -375,11 +375,11 @@ let skipFrames = 0;
             }
             const dstW = ags_arr[2] === '-' ? parts[svg].w : +ags_arr[2];
             const dstH =  ags_arr[3] === '-' ? parts[svg].h : +ags_arr[3];
-            if (!freezer[svg]) {
-              freezer[svg] = {w: parts[svg].w, h: parts[svg].h};
+            if (!freezer[`${svg}___${action}`]) {
+              freezer[`${svg}___${action}`] = {w: parts[svg].w, h: parts[svg].h};
             }
-            parts[svg].h = freezer[svg].h + (dstH - freezer[svg].h) * i / frames;
-            parts[svg].w = freezer[svg].w + (dstW - freezer[svg].w) * i / frames;
+            parts[svg].h = freezer[`${svg}___${action}`].h + (dstH - freezer[`${svg}___${action}`].h) * i / frames;
+            parts[svg].w = freezer[`${svg}___${action}`].w + (dstW - freezer[`${svg}___${action}`].w) * i / frames;
           }
 
           

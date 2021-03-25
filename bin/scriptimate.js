@@ -194,7 +194,7 @@ const addPart = (filename, left, top, opacity, scale, toBoxHole) => {
     top: +firstDefined(eval(top), 0),
     left: +firstDefined(eval(left), 0),
     opacity: +firstDefined(eval(opacity), 1),
-    index: add_part_counter++,
+    index: Object.values(parts).length,
     scale: +firstDefined(scale, 1.0),
     rotate: +firstDefined(0, 0),
     extrastyle: '',

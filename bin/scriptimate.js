@@ -39,17 +39,23 @@ const proc_args = parser.parse_args();
 
 FRAMES_DIR = proc_args.basedir + '/' + FRAMES_DIR;
 
-const parts = {};
+let parts = {};
 const timers = {};
 const boxholes = {};
 
 const groups = {};  // name => Array of lines
 const freezer = {}; 
+const geometry = [];
+const preHandleGeometry = [];
 
 let pageScale = 1;
 let pageW;
 let pageH;
 let groupToAddNext = null;
+const framesHTMLs = [];
+const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc.length - 1].push(e) : acc.push([e]), acc), []);
+let skipFrames = 0;
+let globalFramesCounter = 0;
 
 const ACTION_HANDLERS = {
   move: (i, ags_arr, first_frame_in_animate, frames) => {
@@ -63,6 +69,7 @@ const ACTION_HANDLERS = {
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], top: parts[svg].top, left: parts[svg].left};
     }
+    
     parts[svg].top = freezer[svg].top + (dstTop - freezer[svg].top) * i / frames;
     parts[svg].left = freezer[svg].left + (dstLeft - freezer[svg].left) * i / frames;
     // log('parts[svg].left', svg, dstLeft, parts[svg].left)
@@ -123,8 +130,8 @@ const ACTION_HANDLERS = {
   }
 }
 
-const genHtml = () => {
-  const inner = Object.values(parts).sort((a,b) => {
+const genHtml = (allParts) => {
+  const inner = Object.values(allParts).sort((a,b) => {
       return a.index - b.index
   }).reduce((acc, p) => {
     if (p.type === 'part') {
@@ -278,22 +285,19 @@ const unschedule = (name) => {
   // chack that schedulled and drop warn
   delete timers[name];
 }
+
 const script = fsExtra.readFileSync(proc_args.basedir + '/' + proc_args.input).toString();
 if (! script) {
   throw "Please specify .smte file e.g. -i demo.smte"
 }
 
 
-const framesHTMLs = [];
 
-const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc.length - 1].push(e) : acc.push([e]), acc), []);
-
-let skipFrames = 0;
 
 (async () => {
 
-  const doFrame = async () => {
-    const html = genHtml();
+  const doFrame = async (allParts) => {
+    const html = genHtml(allParts);
     if (cntr < skipFrames) {
       cntr += 1;
       return;
@@ -329,103 +333,146 @@ let skipFrames = 0;
   fsExtra.emptyDirSync(FRAMES_DIR);
 
 
-  for(const  [file_line, line] of script.split('\n').entries() ) {
-    if (!line.trim()) {
+  for(const [file_line, line] of script.split('\n').entries() ) {
+    if (!line.trim() || line.trim().startsWith(';')) {
       // empty line
       continue;
     }
     if (line.startsWith(' ') || line.startsWith('\t')) {
       if (groupToAddNext) {
-        groups[groupToAddNext] = v.trim()
+        if(!groups[groupToAddNext]) {
+          groups[groupToAddNext] = [];
+        }
+        groups[groupToAddNext].push(line.trim());
         continue;
       } else {
-        throw `Line can start with whitespace only if it follows after define_group, on line ${file_line}\m${line}`;
+        throw `Line can start with whitespace only if it follows after define_group, on line ${file_line + 1}:\n${line}`;
       }
     } else {
       groupToAddNext = null;
     }
-
-    const line_splitted_by_whitespace = line.split(' ');
-    const cmd = line_splitted_by_whitespace[0];
-
-    let argSets = line_splitted_by_whitespace.slice(1).join(' ');
     
-    if (argSets) {
-      argSets = argSets.split('&&');
-    }
-    if (cmd === 'init_page') {
-      if (pageW) {
-        continue;
-      }
-      const args = argSets[0].split(' ');
-      pageScale = firstDefined(args[2], 1);
-      pageW = Math.round(args[0] * pageScale);
-      pageH = Math.round(args[1] * pageScale);
-      if (proc_args.fromsecond) {
-        skipFrames = proc_args.fromsecond * FPS;
-      }
-      log(`🎥 Foramt selected: ${proc_args.format}
-📁 Filename ${proc_args.filename}.${proc_args.format}
-📺 Resolution: ${pageW}x${pageH}
-🕗 Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}
-✂ Start from second: ${proc_args.fromsecond}s
-  \n`);
-    }
-    else if (cmd === 'var'){
-      argSets[0].split(' ').forEach((s)=>{
-        let v = s.split('=')
-        global[v[0]] = eval(v[1])
-      })
-    } else if (cmd === 'place') {
-      let args = argSets[0].split(' ');
-      addPart(...args);
-    }
-    else if (cmd === 'place_div') {
-      let args = argSets[0].split(' ');
-      addDiv(...args);
-    }
-    else if (cmd === 'place_boxhole') {
-      let args = argSets[0].split(' ');
-      addBoxHole(...args);
-    }
-    else if (cmd === 'schedule_eval') {
-      let args = argSets[0].split(' ');
-      schedule_eval(...args);
-    }
-    else if (cmd === 'unschedule') {
-      let args = argSets[0].split(' ');
-      unschedule(...args);
-    }
-    else if (cmd === 'addstyle') {
-      let args = argSets[0].split(' ');
-      addStyle(args[0], args.slice(1).join(' '));
-    }
-    else if (cmd.startsWith('define_group')) {
-      let grpName = argSets[0].trim();
-      if (grpName.endsWith(':')) {
-        grpName = grpName.slice(0, -1)
-      }
-      groupToAddNext = grpName;
-    }
-    else if (cmd.startsWith('animate_')) {
-      const duration_ms = +cmd.replace('animate_', '');
+
+    const process_line = (line) => {
+      const line_splitted_by_whitespace = line.split(' ');
+      const cmd = line_splitted_by_whitespace[0];
+      let argSets = line_splitted_by_whitespace.slice(1).join(' ');
       
-      const frames = Math.round(duration_ms / 1.0e3 * FPS);
-      for (let i = 1; i <= frames; i += 1) {
-        const first_frame_in_animate = i === 1;
-        Object.values(timers).forEach((t) => t.tick(1000.0 / FPS));
-        await doFrame();
-        for (let ags of argSets) {
-          const ags_arr = ags.trim().split(' ');
-          const action = ags_arr[0];
-          ACTION_HANDLERS[action](i, ags_arr, first_frame_in_animate, frames)
+      if (argSets) {
+        argSets = argSets.split('&&');
+      }
+      if (cmd === 'init_page') {
+        if (pageW) {
+          return;
+        }
+        const args = argSets[0].split(' ');
+        pageScale = firstDefined(args[2], 1);
+        pageW = Math.round(args[0] * pageScale);
+        pageH = Math.round(args[1] * pageScale);
+        if (proc_args.fromsecond) {
+          skipFrames = proc_args.fromsecond * FPS;
+        }
+        log(`🎥 Foramt selected: ${proc_args.format}
+  📁 Filename ${proc_args.filename}.${proc_args.format}
+  📺 Resolution: ${pageW}x${pageH}
+  🕗 Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}
+  ✂ Start from second: ${proc_args.fromsecond}s
+    \n`);
+      }
+      else if (cmd === 'var'){
+        argSets[0].split(' ').forEach((s)=>{
+          let v = s.split('=')
+          global[v[0]] = eval(v[1])
+        })
+      } else if (cmd === 'place') {
+        let args = argSets[0].split(' ');
+        addPart(...args);
+      }
+      else if (cmd === 'place_div') {
+        let args = argSets[0].split(' ');
+        addDiv(...args);
+      }
+      else if (cmd === 'place_boxhole') {
+        let args = argSets[0].split(' ');
+        addBoxHole(...args);
+      }
+      else if (cmd === 'schedule_eval') {
+        let args = argSets[0].split(' ');
+        schedule_eval(...args);
+      }
+      else if (cmd === 'unschedule') {
+        let args = argSets[0].split(' ');
+        unschedule(...args);
+      }
+      else if (cmd === 'addstyle') {
+        let args = argSets[0].split(' ');
+        addStyle(args[0], args.slice(1).join(' '));
+      }
+      else if (cmd === 'define_group') {
+        let grpName = argSets[0].trim();
+        if (grpName.endsWith(':')) {
+          grpName = grpName.slice(0, -1)
+        }
+        groupToAddNext = grpName;
+      }
+      else if (cmd.startsWith('animate_')) {
+        const duration_ms = +cmd.replace('animate_', '');
+        
+        const frames = Math.round(duration_ms / 1.0e3 * FPS);
+        for (let i = 1; i <= frames; i += 1) {
+          const first_frame_in_animate = i === 1;
+
+          if (first_frame_in_animate) {
+              if (geometry[globalFramesCounter]) {
+                const geo = geometry[globalFramesCounter];
+                log('during first frame, GC:', globalFramesCounter, 'snap:',  Object.keys(geo).map(k => ({[k]: geo[k].left})) )
+              } else {
+                log(' No geometry for GC:', globalFramesCounter)
+              }
+          }
+          if ( geometry[globalFramesCounter] ) {
+            // we are second time on this frame
+            parts = JSON.parse(JSON.stringify(geometry[globalFramesCounter]))
+          }
+
+          Object.values(timers).forEach((t) => t.tick(1000.0 / FPS));
+          
+          for (let ags of argSets) {
+            const ags_arr = ags.trim().split(' ');
+            const action = ags_arr[0];
+            ACTION_HANDLERS[action](i, ags_arr, first_frame_in_animate, frames)
+          }
+          geometry[globalFramesCounter] = JSON.parse(JSON.stringify(parts));
+          // const geo = geometry[globalFramesCounter];
+          // log('snapshoted @', globalFramesCounter, Object.keys(geo).map(k => ({[k]: geo[k].left})))
+          globalFramesCounter += 1;
         }
       }
-    }
-  }
-  await doFrame();
+      else if (cmd.startsWith('run_groups_togather')) {
+        const executing_groups = argSets[0].split(' ').map(g => g.trim());
+        const starterGlobalFrame = globalFramesCounter;
+        let maxGlobalFrameAfterTogether = 0;
+        
+          for (const grp of executing_groups) {
+            globalFramesCounter = starterGlobalFrame;
 
-  log('✅ HTML generation done')
+            for (lineIn of groups[grp]) {
+              process_line(lineIn);
+            }
+            maxGlobalFrameAfterTogether = Math.max(maxGlobalFrameAfterTogether, globalFramesCounter);
+            globalFramesCounter = maxGlobalFrameAfterTogether;
+          }
+      }
+    }
+    process_line(line);
+  }
+  for (const g of geometry) {
+    await doFrame(g);
+  }
+  
+  log('✅ [1/4] Geometry animation dome ')
+
+  log('✅ [2/4] HTML generation done')
   const THREADS = + proc_args.threads;
   let totalGenCntr = 0;
   
@@ -457,7 +504,7 @@ let skipFrames = 0;
     await browser.close();
   }
   await Promise.all(arrayChunks(framesHTMLs, Math.round(framesHTMLs.length / THREADS) ).map(async (ch) => await genScreenshots(ch)))
-  log('✅ Frames generation done')
+  log('✅ [3/4] Frames generation done')
   
 
   let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.jpg`, ];
@@ -481,6 +528,12 @@ let skipFrames = 0;
   
   ls.on('close', (code) => {
     console.log(`ffmpeg exited with code ${code}`);
+    if (code === 0) {
+      log('✅ [4/4] Video encoding done')
+    } else {
+      log('🔴 [4/4] Video encoding failed, se output above')
+
+    }
   });
   
 

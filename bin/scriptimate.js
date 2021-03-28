@@ -12,7 +12,6 @@ const { exception } = require('console');
  
 
 const log = console.log;
-const FPS = 25;
 const MAX_FILENAME_DIGS = 7;
 let cntr = 0;
 let totalFrames = 0;
@@ -31,11 +30,14 @@ parser.add_argument('-fs', '--fromsecond', { help: 'Start from second', default:
 parser.add_argument('-d', '--debughtml', { help: 'Create html files near image to debug', default: false });
 parser.add_argument('-i', '--input', { help: 'Input .scrp file', default: null });
 parser.add_argument('-bd', '--basedir', { help: 'Input dir', default: './' });
-
+parser.add_argument('-fps', '--fps', { help: 'FPS', default: 25 });
 
 
  
 const proc_args = parser.parse_args();
+
+const FPS = +proc_args.fps;
+
 
 FRAMES_DIR = proc_args.basedir + '/' + FRAMES_DIR;
 
@@ -55,7 +57,6 @@ const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc
 let skipFrames = 0;
 let globalFramesCounter = 0;
 
-let shifts = [];
 
 const ACTION_HANDLERS = {
   move: (i, ags_arr, first_frame_in_animate, frames) => {

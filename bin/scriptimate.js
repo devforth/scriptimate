@@ -57,60 +57,82 @@ const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc
 let skipFrames = 0;
 let globalFramesCounter = 0;
 
+// want more? copy from here: https://hinty.io/ivictbor/animation-formulas/
+const animationHandlersByMode = {
+  linear: (t, b, c, d) => {
+    return c*t/d + b;
+  },
+  easein: (t, b, c, d) => { // Quadratic easing in 
+    t /= d;
+    return c*t*t + b;
+  },
+  easeout: (t, b, c, d) => { // Quadratic easing out
+    t /= d;
+	  return -c * t*(t-2) + b;
+  },
+  easeinout: (t, b, c, d) => {  // Quadratic easing out
+    t /= d/2;
+    if (t < 1) return c/2*t*t + b;
+    t--;
+    return -c/2 * (t*(t-2) - 1) + b;
+  },	
+
+
+}
 
 const ACTION_HANDLERS = {
-  move: (i, ags_arr, first_frame_in_animate, frames) => {
-    const svg = ags_arr[1];
+  move: (i, ags_arr, first_frame_in_animate, frames, mode) => {
+    const svg = ags_arr[0];
     if (!parts[svg]) {
       return;
     }
-    const dstLeft = ags_arr[2] === '-' ? parts[svg].left : eval(ags_arr[2]);
-    const dstTop =  ags_arr[3] === '-' ? parts[svg].top : eval(ags_arr[3]);
+    const dstLeft = ags_arr[1] === '-' ? parts[svg].left : eval(ags_arr[1]);
+    const dstTop =  ags_arr[2] === '-' ? parts[svg].top : eval(ags_arr[2]);
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], top: parts[svg].top, left: parts[svg].left};
     }
 
-    parts[svg].top += (dstTop - freezer[svg].top) * 1 / frames;
-    parts[svg].left += (dstLeft - freezer[svg].left) * 1 / frames;
+    parts[svg].top = animationHandlersByMode[mode](i, freezer[svg].top, dstTop - freezer[svg].top, frames);
+    parts[svg].left = animationHandlersByMode[mode](i, freezer[svg].left, dstLeft - freezer[svg].left, frames);
   },
   scale: (i, ags_arr, first_frame_in_animate, frames) => {
-    const svg = ags_arr[1];
+    const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
-    const dstScale = +ags_arr[2];
+    const dstScale = +ags_arr[1];
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], scale: parts[svg].scale};
     }
     parts[svg].scale = freezer[svg].scale + (dstScale - freezer[svg].scale) * i / frames;
   },
   rotate: (i, ags_arr, first_frame_in_animate, frames) => {
-    const svg = ags_arr[1];
+    const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: rotate not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
-    const dstRotate = +ags_arr[2];
+    const dstRotate = +ags_arr[1];
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], rotate: parts[svg].rotate};
     }
     parts[svg].rotate = freezer[svg].rotate + (dstRotate - freezer[svg].rotate) * i / frames;
   },
   opacity: (i, ags_arr, first_frame_in_animate, frames) => {
-    const svg = ags_arr[1];
+    const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
-    const dstOpacity = +ags_arr[2];
+    const dstOpacity = +ags_arr[1];
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], opacity: parts[svg].opacity};
     }
     parts[svg].opacity = freezer[svg].opacity + (dstOpacity - freezer[svg].opacity) * i / frames;
   },
   resize_div: (i, ags_arr, first_frame_in_animate, frames) => {
-    const svg = ags_arr[1];
+    const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: resize_div not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
@@ -119,8 +141,8 @@ const ACTION_HANDLERS = {
       log(`WARN: resize_div could be applied only to type block: not ${parts[svg].type}, part: ${svg}, line: \n${cmd}\n`);
       return;
     }
-    const dstW = ags_arr[2] === '-' ? parts[svg].w : +ags_arr[2];
-    const dstH =  ags_arr[3] === '-' ? parts[svg].h : +ags_arr[3];
+    const dstW = ags_arr[1] === '-' ? parts[svg].w : +ags_arr[1];
+    const dstH =  ags_arr[2] === '-' ? parts[svg].h : +ags_arr[2];
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], w: parts[svg].w, h: parts[svg].h};
     }
@@ -349,7 +371,23 @@ if (! script) {
     } else {
       groupToAddNext = null;
     }
+
+    const handleActionsInAnimate = (i, argSets, frames) => {
+      let atLeastOneFrameMade = false;
+      const first_frame_in_animate = i === 1;
     
+      for (let ags of argSets) {
+        const ags_arr = ags.trim().split(' ');
+        const action = ags_arr.shift();
+        let mode = 'linear';
+        if (Object.keys(animationHandlersByMode).includes(ags_arr[0])) {
+          mode = ags_arr.shift()
+        }
+        ACTION_HANDLERS[action](i, ags_arr, first_frame_in_animate, frames, mode);
+        atLeastOneFrameMade = true;
+      }
+      return atLeastOneFrameMade;
+    }
 
     const process_line = async (line, group) => {
       const line_splitted_by_whitespace = line.split(' ');
@@ -417,17 +455,9 @@ if (! script) {
         const frames = Math.round(duration_ms / 1.0e3 * FPS);
         
         for (let i = 1; i <= frames; i += 1) {
-          const first_frame_in_animate = i === 1;
-
           Object.values(timers).forEach((t) => t.tick(1000.0 / FPS));
-          
-          for (let ags of argSets) {
-            const ags_arr = ags.trim().split(' ');
-            const action = ags_arr[0];
-            ACTION_HANDLERS[action](i, ags_arr, first_frame_in_animate, frames)
-            await doFrame();
-          }
-          
+          handleActionsInAnimate(i, argSets, frames)
+          await doFrame();
           globalFramesCounter += 1;
         }
       }
@@ -472,14 +502,8 @@ if (! script) {
 
             if (needOperationByGroup[grp]) {
               const state = animationStateByGroup[grp];
-              const first_frame_in_animate = state.i === 1;
-    
-              Object.values(timers).forEach((t) => t.tick(1000.0 / FPS));
-              
-              for (let ags of state.argSets) {
-                const ags_arr = ags.trim().split(' ');
-                const action = ags_arr[0];
-                ACTION_HANDLERS[action](state.i, ags_arr, first_frame_in_animate, state.frames);
+
+              if (handleActionsInAnimate(state.i, state.argSets, state.frames)) {
                 atLeastOneFrameMade = true;
               }
 
@@ -492,6 +516,7 @@ if (! script) {
           
           needNextIteration = atLeastOneFrameMade;
           if (atLeastOneFrameMade) {
+            Object.values(timers).forEach((t) => t.tick(1000.0 / FPS));
             globalFramesCounter += 1;
             await doFrame();
           }

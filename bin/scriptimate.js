@@ -290,8 +290,6 @@ if (! script) {
 }
 
 
-
-
 (async () => {
 
   const doFrame = async () => {
@@ -326,6 +324,7 @@ if (! script) {
       totalMs += +cmd.replace('animate_', '');
       totalFrames += Math.round(+cmd.replace('animate_', '') / 1.0e3 * FPS);
     }
+    
   }
 
   fsExtra.emptyDirSync(FRAMES_DIR);
@@ -373,7 +372,6 @@ if (! script) {
         log(`🎥 Foramt selected: ${proc_args.format}
   📁 Filename ${proc_args.filename}.${proc_args.format}
   📺 Resolution: ${pageW}x${pageH}
-  🕗 Total duration: ${(totalMs / 1e3).toFixed(1)}s FPS: ${FPS}
   ✂ Start from second: ${proc_args.fromsecond}s
     \n`);
       }
@@ -505,10 +503,11 @@ if (! script) {
 
   
   log('✅ [2/4] HTML generation done')
+  log(`🕗 Total duration: ${(globalFramesCounter / FPS).toFixed(1)}s FPS: ${FPS}`)
+
   const THREADS = + proc_args.threads;
   let totalGenCntr = 0;
   
-
   const genScreenshots = async (seq) => {
     const browser = await puppeteer.launch({args: [
       `--window-size=${pageW},${pageH}`, 

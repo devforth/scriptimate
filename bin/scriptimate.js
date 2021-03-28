@@ -45,8 +45,6 @@ const boxholes = {};
 
 const groups = {};  // name => Array of lines
 const freezer = {}; 
-const geometry = [];
-const preHandleGeometry = [];
 
 let pageScale = 1;
 let pageW;
@@ -57,11 +55,12 @@ const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc
 let skipFrames = 0;
 let globalFramesCounter = 0;
 
+let shifts = [];
+
 const ACTION_HANDLERS = {
   move: (i, ags_arr, first_frame_in_animate, frames) => {
     const svg = ags_arr[1];
     if (!parts[svg]) {
-      log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
     const dstLeft = ags_arr[2] === '-' ? parts[svg].left : eval(ags_arr[2]);
@@ -69,10 +68,9 @@ const ACTION_HANDLERS = {
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], top: parts[svg].top, left: parts[svg].left};
     }
-    
-    parts[svg].top = freezer[svg].top + (dstTop - freezer[svg].top) * i / frames;
-    parts[svg].left = freezer[svg].left + (dstLeft - freezer[svg].left) * i / frames;
-    // log('parts[svg].left', svg, dstLeft, parts[svg].left)
+
+    parts[svg].top += (dstTop - freezer[svg].top) * 1 / frames;
+    parts[svg].left += (dstLeft - freezer[svg].left) * 1 / frames;
   },
   scale: (i, ags_arr, first_frame_in_animate, frames) => {
     const svg = ags_arr[1];
@@ -296,8 +294,8 @@ if (! script) {
 
 (async () => {
 
-  const doFrame = async (allParts) => {
-    const html = genHtml(allParts);
+  const doFrame = async () => {
+    const html = genHtml(parts);
     if (cntr < skipFrames) {
       cntr += 1;
       return;
@@ -353,7 +351,7 @@ if (! script) {
     }
     
 
-    const process_line = (line) => {
+    const process_line = async (line, group) => {
       const line_splitted_by_whitespace = line.split(' ');
       const cmd = line_splitted_by_whitespace[0];
       let argSets = line_splitted_by_whitespace.slice(1).join(' ');
@@ -417,23 +415,10 @@ if (! script) {
       }
       else if (cmd.startsWith('animate_')) {
         const duration_ms = +cmd.replace('animate_', '');
-        
         const frames = Math.round(duration_ms / 1.0e3 * FPS);
+        
         for (let i = 1; i <= frames; i += 1) {
           const first_frame_in_animate = i === 1;
-
-          if (first_frame_in_animate) {
-              if (geometry[globalFramesCounter]) {
-                const geo = geometry[globalFramesCounter];
-                log('during first frame, GC:', globalFramesCounter, 'snap:',  Object.keys(geo).map(k => ({[k]: geo[k].left})) )
-              } else {
-                log(' No geometry for GC:', globalFramesCounter)
-              }
-          }
-          if ( geometry[globalFramesCounter] ) {
-            // we are second time on this frame
-            parts = JSON.parse(JSON.stringify(geometry[globalFramesCounter]))
-          }
 
           Object.values(timers).forEach((t) => t.tick(1000.0 / FPS));
           
@@ -441,37 +426,84 @@ if (! script) {
             const ags_arr = ags.trim().split(' ');
             const action = ags_arr[0];
             ACTION_HANDLERS[action](i, ags_arr, first_frame_in_animate, frames)
+            await doFrame();
           }
-          geometry[globalFramesCounter] = JSON.parse(JSON.stringify(parts));
-          // const geo = geometry[globalFramesCounter];
-          // log('snapshoted @', globalFramesCounter, Object.keys(geo).map(k => ({[k]: geo[k].left})))
+          
           globalFramesCounter += 1;
         }
       }
-      else if (cmd.startsWith('run_groups_togather')) {
+      else if (cmd.startsWith('run_groups_together')) {
         const executing_groups = argSets[0].split(' ').map(g => g.trim());
-        const starterGlobalFrame = globalFramesCounter;
-        let maxGlobalFrameAfterTogether = 0;
-        
-          for (const grp of executing_groups) {
-            globalFramesCounter = starterGlobalFrame;
+        let needNextIteration = true;
+        const needOperationByGroup = {};
+        const animationStateByGroup = {}
+        while (needNextIteration) {
 
-            for (lineIn of groups[grp]) {
-              process_line(lineIn);
+          let atLeastOneFrameMade = false;
+          for (const grp of executing_groups) {
+            if (!needOperationByGroup[grp]) {
+              while (groups[grp].length) {
+                needOperationByGroup[grp] = groups[grp].shift()
+                if (needOperationByGroup[grp].startsWith('animate_')) {
+                  break; // we found next animate
+                } else {
+                  await process_line(lineIn, grp);
+                  needOperationByGroup[grp] = null;  // something which does not need a frames, omit it
+                }
+              }
+              if (needOperationByGroup[grp]) {
+                // this is a new next animation
+                const line_splitted_by_whitespace = needOperationByGroup[grp].split(' ');
+                const cmd = line_splitted_by_whitespace[0];
+                let argSets = line_splitted_by_whitespace.slice(1).join(' ');
+                
+                if (argSets) {
+                  argSets = argSets.split('&&');
+                }
+
+                const duration_ms = +cmd.replace('animate_', '');
+                const frames = Math.round(duration_ms / 1.0e3 * FPS);
+                animationStateByGroup[grp] = {
+                  argSets,
+                  frames,
+                  i: 1,
+                }
+              }
             }
-            maxGlobalFrameAfterTogether = Math.max(maxGlobalFrameAfterTogether, globalFramesCounter);
-            globalFramesCounter = maxGlobalFrameAfterTogether;
+
+            if (needOperationByGroup[grp]) {
+              const state = animationStateByGroup[grp];
+              const first_frame_in_animate = state.i === 1;
+    
+              Object.values(timers).forEach((t) => t.tick(1000.0 / FPS));
+              
+              for (let ags of state.argSets) {
+                const ags_arr = ags.trim().split(' ');
+                const action = ags_arr[0];
+                ACTION_HANDLERS[action](state.i, ags_arr, first_frame_in_animate, state.frames);
+                atLeastOneFrameMade = true;
+              }
+
+              state.i += 1;
+              if (state.i > state.frames) {
+                needOperationByGroup[grp] = null; // next cycle should pick up something
+              }
+            }
           }
+          
+          needNextIteration = atLeastOneFrameMade;
+          if (atLeastOneFrameMade) {
+            globalFramesCounter += 1;
+            await doFrame();
+          }
+        }
+        
       }
     }
-    process_line(line);
+    await process_line(line);
   }
-  for (const g of geometry) {
-    await doFrame(g);
-  }
-  
-  log('✅ [1/4] Geometry animation dome ')
 
+  
   log('✅ [2/4] HTML generation done')
   const THREADS = + proc_args.threads;
   let totalGenCntr = 0;

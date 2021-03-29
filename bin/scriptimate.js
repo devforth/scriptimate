@@ -105,7 +105,7 @@ const ACTION_HANDLERS = {
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], scale: parts[svg].scale};
     }
-    parts[svg].scale = freezer[svg].scale + (dstScale - freezer[svg].scale) * i / frames;
+    parts[svg].scale = animationHandlersByMode[mode](i, freezer[svg].scale, dstScale - freezer[svg].scale, frames);
   },
   rotate: (i, ags_arr, first_frame_in_animate, frames) => {
     const svg = ags_arr[0];
@@ -117,7 +117,7 @@ const ACTION_HANDLERS = {
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], rotate: parts[svg].rotate};
     }
-    parts[svg].rotate = freezer[svg].rotate + (dstRotate - freezer[svg].rotate) * i / frames;
+    parts[svg].rotate = animationHandlersByMode[mode](i, freezer[svg].rotate, dstRotate - freezer[svg].rotate, frames);
   },
   opacity: (i, ags_arr, first_frame_in_animate, frames) => {
     const svg = ags_arr[0];
@@ -129,7 +129,7 @@ const ACTION_HANDLERS = {
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], opacity: parts[svg].opacity};
     }
-    parts[svg].opacity = freezer[svg].opacity + (dstOpacity - freezer[svg].opacity) * i / frames;
+    parts[svg].opacity = animationHandlersByMode[mode](i, freezer[svg].opacity, dstOpacity - freezer[svg].opacity, frames);
   },
   resize_div: (i, ags_arr, first_frame_in_animate, frames) => {
     const svg = ags_arr[0];
@@ -146,8 +146,9 @@ const ACTION_HANDLERS = {
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], w: parts[svg].w, h: parts[svg].h};
     }
-    parts[svg].h = freezer[svg].h + (dstH - freezer[svg].h) * i / frames;
-    parts[svg].w = freezer[svg].w + (dstW - freezer[svg].w) * i / frames;
+
+    parts[svg].w = animationHandlersByMode[mode](i, freezer[svg].w, dstW - freezer[svg].w, frames);
+    parts[svg].h = animationHandlersByMode[mode](i, freezer[svg].h, dstH - freezer[svg].h, frames);
   }
 }
 
@@ -353,11 +354,21 @@ if (! script) {
   fsExtra.emptyDirSync(FRAMES_DIR);
 
 
-  for(const [file_line, line] of script.split('\n').entries() ) {
+  const processed_lines = []
+  for (const line of script.split('\n')) {
     if (!line.trim() || line.trim().startsWith(';')) {
       // empty line
       continue;
     }
+    if (line.trim().startsWith('&&')) {
+      processed_lines[processed_lines.length - 1] += ` ${line.trim()} `;
+    } else {
+      processed_lines.push(line);
+    }
+  }
+
+  for (const [file_line, line] of processed_lines.entries()) {
+    log(line);
     if (line.startsWith(' ') || line.startsWith('\t')) {
       if (groupToAddNext) {
         if(!groups[groupToAddNext]) {

@@ -1,0 +1,14 @@
+init_page 500 500 2
+
+place blue 0 200
+place red 0 300
+
+define_group g1:
+  animate_500 move blue 300 100
+  animate_500 move red 450 200 
+
+define_group g2:
+  animate_500 move red 300 400
+  animate_500 move blue 450 300
+
+run_groups_together g1 g2

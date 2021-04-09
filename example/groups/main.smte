@@ -1,0 +1,19 @@
+init_page 300 160 2
+
+place bg 0 0
+
+place blue 0 0
+place red 0 50
+
+define_group g1:
+  animate_80 move blue 120 0
+  animate_160 move blue 240 0
+
+
+define_group g2:
+  animate_120 move red 120 50
+  animate_120 move red 240 50
+
+
+
+run_groups_together g1 g2

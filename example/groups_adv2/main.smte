@@ -1,0 +1,37 @@
+init_page 500 500 2
+
+place blue 0 200
+place red 0 300
+
+animate_1000 move easyin blue 400 200 && move red 400 300
+
+
+define_group g1:
+  animate_400 move red 100 300
+  animate_300 move red 200 300
+  animate_100 move red 300 300
+  animate_50 move red 400 300 
+
+define_group g2:
+  animate_50 move blue 100 200
+  animate_100 move blue 200 200
+  animate_300 move blue 300 200
+  animate_400 move blue 400 200
+
+run_groups_together g1 g2
+
+animate_300 move blue 0 200 && move red 0 300
+
+define_group g3:
+  animate_200 move blue 200 0
+
+
+define_group g4:
+  animate_200 move red 200 400
+
+
+run_groups_together g3 g4
+
+animate_300 move blue 400 200 && move red 400 200
+
+

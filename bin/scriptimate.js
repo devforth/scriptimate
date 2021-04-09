@@ -95,7 +95,7 @@ const ACTION_HANDLERS = {
     parts[svg].top = animationHandlersByMode[mode](i, freezer[svg].top, dstTop - freezer[svg].top, frames);
     parts[svg].left = animationHandlersByMode[mode](i, freezer[svg].left, dstLeft - freezer[svg].left, frames);
   },
-  scale: (i, ags_arr, first_frame_in_animate, frames) => {
+  scale: (i, ags_arr, first_frame_in_animate, frames, mode) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
@@ -107,7 +107,7 @@ const ACTION_HANDLERS = {
     }
     parts[svg].scale = animationHandlersByMode[mode](i, freezer[svg].scale, dstScale - freezer[svg].scale, frames);
   },
-  rotate: (i, ags_arr, first_frame_in_animate, frames) => {
+  rotate: (i, ags_arr, first_frame_in_animate, frames, mode) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: rotate not applied, part not found: ${svg}, line: \n${cmd}\n`);
@@ -119,7 +119,7 @@ const ACTION_HANDLERS = {
     }
     parts[svg].rotate = animationHandlersByMode[mode](i, freezer[svg].rotate, dstRotate - freezer[svg].rotate, frames);
   },
-  opacity: (i, ags_arr, first_frame_in_animate, frames) => {
+  opacity: (i, ags_arr, first_frame_in_animate, frames, mode) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
@@ -131,7 +131,7 @@ const ACTION_HANDLERS = {
     }
     parts[svg].opacity = animationHandlersByMode[mode](i, freezer[svg].opacity, dstOpacity - freezer[svg].opacity, frames);
   },
-  resize_div: (i, ags_arr, first_frame_in_animate, frames) => {
+  resize_div: (i, ags_arr, first_frame_in_animate, frames, mode) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: resize_div not applied, part not found: ${svg}, line: \n${cmd}\n`);
@@ -149,6 +149,9 @@ const ACTION_HANDLERS = {
 
     parts[svg].w = animationHandlersByMode[mode](i, freezer[svg].w, dstW - freezer[svg].w, frames);
     parts[svg].h = animationHandlersByMode[mode](i, freezer[svg].h, dstH - freezer[svg].h, frames);
+  },
+  pause: () =>{
+
   }
 }
 
@@ -368,7 +371,6 @@ if (! script) {
   }
 
   for (const [file_line, line] of processed_lines.entries()) {
-    log(line);
     if (line.startsWith(' ') || line.startsWith('\t')) {
       if (groupToAddNext) {
         if(!groups[groupToAddNext]) {

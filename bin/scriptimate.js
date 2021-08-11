@@ -56,6 +56,7 @@ const framesHTMLs = [];
 const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc.length - 1].push(e) : acc.push([e]), acc), []);
 let skipFrames = 0;
 let globalFramesCounter = 0;
+let globalLastFrame = null;
 
 // want more? copy from here: https://hinty.io/ivictbor/animation-formulas/
 const animationHandlersByMode = {
@@ -141,8 +142,8 @@ const ACTION_HANDLERS = {
       log(`WARN: resize_div could be applied only to type block: not ${parts[svg].type}, part: ${svg}, line: \n${cmd}\n`);
       return;
     }
-    const dstW = ags_arr[1] === '-' ? parts[svg].w : +ags_arr[1];
-    const dstH =  ags_arr[2] === '-' ? parts[svg].h : +ags_arr[2];
+    const dstW = ags_arr[1] === '-' ? parts[svg].w : eval(ags_arr[1]);
+    const dstH =  ags_arr[2] === '-' ? parts[svg].h : eval(ags_arr[2]);
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], w: parts[svg].w, h: parts[svg].h};
     }
@@ -235,7 +236,7 @@ const addPart = (filename, left, top, opacity, scale, toBoxHole) => {
   freezer[filename] = {};
 };
 
-const addDiv = (name, left, top, w, h, opacity, c, ...rest) => {
+const addDiv = (name, left, top, w, h, opacity, c, toBoxHole) => {
   //+rest.join(' ').replaceAll('"', '').replaceAll("'", '')
   const content = eval(c);
   parts[name] = {
@@ -249,6 +250,7 @@ const addDiv = (name, left, top, w, h, opacity, c, ...rest) => {
     index: Object.values(parts).length,
     rotate: +firstDefined(0, 0),
     content: content,
+    toBoxHole,
   }
 }
 
@@ -287,10 +289,37 @@ const addStyle = (part, style) => {
 const schedule_eval = (name, ms, ...rest) => {
   const code = rest.join(' ');
   // todo check that timer already scheduled and drop warn
+
   timers[name] = setPseudoInterval(
     () => {
       const incr = (part) => {
         parts[part].content = +parts[part].content + 1;
+        global[part+'_value'] = parts[part].content
+      }
+      const get = (part) => {
+        return parts[part].content;
+      }
+      const set = (part, value) => {
+        parts[part].content = eval(value);
+        global[part+'_value'] = eval(value)
+      }
+      eval(code)
+    },
+    +ms
+  )
+}
+
+const schedule_time = (name, ms = 50) => {
+  const code = `incrM('${name}_minutes'); if (+get('${name}_minutes') >= 60) { incr('${name}_hours'); set('${name}_minutes', 0)}`;
+  
+  timers[name] = setPseudoInterval(
+    () => {
+      const incr = (part) => {
+        parts[part].content = +parts[part].content + 1;
+        global[part+'_value'] = parts[part].content
+      }
+      const incrM = (part) => {
+        parts[part].content = +parts[part].content + 7;
         global[part+'_value'] = parts[part].content
       }
       const get = (part) => {
@@ -321,7 +350,7 @@ if (! script) {
 
   const doFrame = async () => {
     const html = genHtml(parts);
-    if (cntr < skipFrames) {
+    if (cntr < skipFrames || (globalLastFrame && cntr > globalLastFrame)) {
       cntr += 1;
       return;
     }
@@ -432,6 +461,8 @@ if (! script) {
           let v = s.split('=')
           global[v[0]] = eval(v[1])
         })
+      } else if (cmd === 'exit') {
+        globalLastFrame = globalLastFrame || globalFramesCounter;
       } else if (cmd === 'place') {
         let args = argSets[0].split(' ');
         addPart(...args);
@@ -447,6 +478,10 @@ if (! script) {
       else if (cmd === 'schedule_eval') {
         let args = argSets[0].split(' ');
         schedule_eval(...args);
+      }
+      else if (cmd === 'schedule_time') {
+        let args = argSets[0].split(' ');
+        schedule_time(...args);
       }
       else if (cmd === 'unschedule') {
         let args = argSets[0].split(' ');
@@ -486,6 +521,8 @@ if (! script) {
             if (!needOperationByGroup[grp]) {
               while (groups[grp].length) {
                 needOperationByGroup[grp] = groups[grp].shift()
+                lineIn = needOperationByGroup[grp]
+                
                 if (needOperationByGroup[grp].startsWith('animate_')) {
                   break; // we found next animate
                 } else {

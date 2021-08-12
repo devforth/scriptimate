@@ -35,6 +35,12 @@ To output in `webm`:
 npx scriptimate -f webm
 ```
 
+For videos with more then 10 secends there might be increased RAM consumption (by puppyteer) and we have not solve it yet, just use
+
+```
+NODE_OPTIONS=--max_old_space_size=8096 npx scriptimate -f webm
+```
+
 
 # Advanced ussage
 

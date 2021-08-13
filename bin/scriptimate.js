@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 
 const {promises: fs} = require('fs');
-const util = require('util');
-const puppeteer = require('puppeteer');
+const fsBlocken = require('fs');
 const short = require('short-uuid');
-const { spawn } = require('child_process');
+const { spawn, execFile } = require('child_process');
 const fsExtra = require('fs-extra')
 const { ArgumentParser } = require('argparse');
 const { version } = require('../package.json');
 const { exception } = require('console');
  
+const path = require('path');
 
 const log = console.log;
 const MAX_FILENAME_DIGS = 7;
@@ -17,6 +17,7 @@ let cntr = 0;
 let totalFrames = 0;
 let FRAMES_DIR = 'frames';
 
+let totalFramesCount = 0;
 
 const parser = new ArgumentParser({
   description: `Scriptimate v${version}`
@@ -52,7 +53,6 @@ let pageScale = 1;
 let pageW;
 let pageH;
 let groupToAddNext = null;
-const framesHTMLs = [];
 const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc.length - 1].push(e) : acc.push([e]), acc), []);
 let skipFrames = 0;
 let globalFramesCounter = 0;
@@ -354,18 +354,17 @@ if (! script) {
       cntr += 1;
       return;
     }
-    framesHTMLs.push({
-      path: `${FRAMES_DIR}/${(''+(cntr - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.jpg`,
-      html,
-    });
+    // framesHTMLs.push({
+    //   path: `${FRAMES_DIR}/${(''+(cntr - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.jpg`,
+    //   html,
+    // });
+    totalFramesCount += 1;
     
-    if (proc_args.debughtml) {
-      await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
-        if(err) {
-            return console.log(err);
-        }
-      });
-    }
+    await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
+      if(err) {
+          return console.log(err);
+      }
+    });
     
     cntr += 1;
     log(`HTML pages gen: ${(cntr * 100.0 / (totalFrames + 1)).toFixed(2)}%`, '\033[F');
@@ -584,33 +583,36 @@ if (! script) {
   const THREADS = + proc_args.threads;
   let totalGenCntr = 0;
   
-  const genScreenshots = async (seq) => {
-    const browser = await puppeteer.launch({args: [
-      `--window-size=${pageW},${pageH}`, 
-      '--no-sandbox',
-      '--disk-cache-dir=/tmp/pup'
-    ], headless: true,});
-    
-    for (let o of seq) {
-      const page = await browser.newPage();
-      await page.setViewport({width: pageW, height: pageH, deviceScaleFactor: 1});
-      await page._client.send('Emulation.clearDeviceMetricsOverride');
-      await page.setContent(o.html);
-      await page.screenshot({path: o.path, type: 'jpeg', quality: 100});
-      delete o;
-      totalGenCntr += 1;
-      log(`Frames gen: ${(totalGenCntr * 100.0 / framesHTMLs.length).toFixed(2)}%`, '\033[F');
-      await page.close();
-      try {
-        if (global.gc) {global.gc();}
-      } catch (e) {
-        console.log("`node --expose-gc index.js`");
-        process.exit();
-      }
-    }
-    await browser.close();
+  async function genScreenshots(index) {
+    await new Promise((resolve) => {
+      const proc = spawn('node', [path.resolve(__dirname, 'puWorker.js'), pageW, pageH, index, totalFramesCount, FRAMES_DIR ], { shell: true });
+      proc.stdout.on('data', (data) => {
+        console.log(`NodeOUT: ${data}`);
+      });
+      
+      proc.stderr.on('data', (data) => {
+        console.error(`NodeERR: ${data}`);
+      });
+      
+      proc.on('close', (code) => {
+        console.log(`node finished`, index);
+        if (code === 0) {
+          log('✅ node finished ok')
+        } else {
+          log('🔴  node failed')
+        }
+        resolve();
+      });
+    })
   }
-  await Promise.all(arrayChunks(framesHTMLs, Math.round(framesHTMLs.length / THREADS) ).map(async (ch) => await genScreenshots(ch)))
+  
+  
+  for (let i =0; i <= totalFramesCount; i+=1) {
+    await genScreenshots(i);
+  }
+
+
+  // await Promise.all(arrayChunks(framesHTMLs, Math.round(framesHTMLs.length / THREADS) ).map(async (ch) => await genScreenshots(ch)))
   log('✅ [3/4] Frames generation done')
   
 

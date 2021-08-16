@@ -32,7 +32,13 @@ npx scriptimate
 To output in `webm`:
 
 ```
-npx scriptimate -f webm
+npx scriptimate@latest -i scenario.smte -f webm
+```
+
+or:
+
+```
+npx scriptimate@latest -i main.smte -f mp4
 ```
 
 

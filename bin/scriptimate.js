@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const {promises: fs} = require('fs');
-const fsBlocken = require('fs');
 const short = require('short-uuid');
 const { spawn, execFile } = require('child_process');
 const fsExtra = require('fs-extra')
@@ -10,7 +9,6 @@ const { version } = require('../package.json');
 const { exception } = require('console');
  
 const path = require('path');
-const { format } = require('path');
 
 const log = console.log;
 const MAX_FILENAME_DIGS = 7;
@@ -607,12 +605,21 @@ if (! script) {
     })
   }
   
-  
-  for (let i =0; i <= totalFramesCount; i+=1) {
-    await genScreenshots(i);
-  }
+  async function genScreenshotsForChunk(indexesChunk) {
+    for (let i=0; i < indexesChunk.length; i+=1) {
 
-  // await Promise.all(arrayChunks(framesHTMLs, Math.round(framesHTMLs.length / THREADS) ).map(async (ch) => await genScreenshots(ch)))
+      console.log(1231, indexesChunk[i])
+      await genScreenshots(indexesChunk[i]);
+    }
+  }
+  
+  
+
+  const indexes = Array.from( Array(totalFramesCount).keys() );
+
+  await Promise.all(arrayChunks(indexes, Math.round( (indexes.length) / THREADS) ).map(async (indexesChunk) => await genScreenshotsForChunk(indexesChunk)))
+  
+  
   log('✅ [3/4] Frames generation done')
   
   proc_args.format.split(',').forEach((format) => {
@@ -654,6 +661,3 @@ if (! script) {
 
 })();
 
-function calcValue(str){
-
-}

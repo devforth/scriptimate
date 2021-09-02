@@ -41,12 +41,6 @@ or:
 npx scriptimate@latest -i main.smte -f mp4
 ```
 
-For videos with more then 10 secends there might be increased RAM consumption (by puppyteer) and we have not solve it yet, just use
-
-```
-NODE_OPTIONS=--max-old-space-size=8096 npx scriptimate -f webm
-```
-
 
 # Advanced ussage
 

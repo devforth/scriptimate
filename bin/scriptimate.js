@@ -10,6 +10,7 @@ const { version } = require('../package.json');
 const { exception } = require('console');
  
 const path = require('path');
+const { format } = require('path');
 
 const log = console.log;
 const MAX_FILENAME_DIGS = 7;
@@ -24,7 +25,7 @@ const parser = new ArgumentParser({
 });
  
 parser.add_argument('-v', '--version', { action: 'version', version });
-parser.add_argument('-f', '--format', { help: 'format webm or mp4', default: 'mp4' });
+parser.add_argument('-f', '--format', { help: 'format webm or mp4, or multiple: "webm,mp4"', default: 'mp4' });
 parser.add_argument('-fn', '--filename', { help: 'filename', default: 'out' });
 parser.add_argument('-t', '--threads', { help: 'Threads count', default: 4 });
 parser.add_argument('-fs', '--fromsecond', { help: 'Start from second', default: 0 });
@@ -611,39 +612,44 @@ if (! script) {
     await genScreenshots(i);
   }
 
-
   // await Promise.all(arrayChunks(framesHTMLs, Math.round(framesHTMLs.length / THREADS) ).map(async (ch) => await genScreenshots(ch)))
   log('✅ [3/4] Frames generation done')
   
-
-  let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.jpg`, ];
-  if (proc_args.format === 'webm') {
-    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${proc_args.filename}.${proc_args.format}`, '-y']
-  } else if (proc_args.format === 'mp4') {
-    ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${proc_args.filename}.${proc_args.format}`, '-y']
-  } else {
-    throw exception(`Unknown format: ${proc_args.format}`);
-  }
-  log(`💿 Running encoder:\nffmpeg ${ffmpeg_args.join(' ')}`)
-  const ls = spawn('ffmpeg', ffmpeg_args);
-
-  ls.stdout.on('data', (data) => {
-    console.log(`ffmpeg: ${data}`);
-  });
-  
-  ls.stderr.on('data', (data) => {
-    console.error(`ffmpeg: ${data}`);
-  });
-  
-  ls.on('close', (code) => {
-    console.log(`ffmpeg exited with code ${code}`);
-    if (code === 0) {
-      log('✅ [4/4] Video encoding done')
-    } else {
-      log('🔴 [4/4] Video encoding failed, se output above')
-
+  proc_args.format.split(',').forEach((format) => {
+    if (!format.trim()) {
+      return;
     }
-  });
+    let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.jpg`, ];
+    if (format === 'webm') {
+      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${proc_args.filename}.${format}`, '-y']
+    } else if (format === 'mp4') {
+      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${proc_args.filename}.${format}`, '-y']
+    } else {
+      throw exception(`Unknown format: ${format}`);
+    }
+    log(`💿 Running encoder:\nffmpeg ${ffmpeg_args.join(' ')}`)
+    const ls = spawn('ffmpeg', ffmpeg_args);
+  
+    ls.stdout.on('data', (data) => {
+      console.log(`ffmpeg: ${data}`);
+    });
+    
+    ls.stderr.on('data', (data) => {
+      console.error(`ffmpeg: ${data}`);
+    });
+    
+    ls.on('close', (code) => {
+      console.log(`ffmpeg exited with code ${code}`);
+      if (code === 0) {
+        log('✅ [4/4] Video encoding done')
+      } else {
+        log('🔴 [4/4] Video encoding failed, se output above')
+      }
+    });
+
+
+  })
+  
   
 
 })();

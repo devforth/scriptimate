@@ -346,17 +346,12 @@ if (! script) {
 
 
 (async () => {
-
   const doFrame = async () => {
     const html = genHtml(parts);
     if (cntr < skipFrames || (globalLastFrame && cntr > globalLastFrame)) {
       cntr += 1;
       return;
     }
-    // framesHTMLs.push({
-    //   path: `${FRAMES_DIR}/${(''+(cntr - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.jpg`,
-    //   html,
-    // });
     totalFramesCount += 1;
     
     await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
@@ -448,10 +443,10 @@ if (! script) {
         if (proc_args.fromsecond) {
           skipFrames = proc_args.fromsecond * FPS;
         }
-        log(`🎥 Foramt selected: ${proc_args.format}
-  📁 Filename ${proc_args.filename}.${proc_args.format}
-  📺 Resolution: ${pageW}x${pageH}
-  ✂ Start from second: ${proc_args.fromsecond}s
+        log(`🎥 Format selected: ${proc_args.format}
+📁 Filename ${proc_args.filename}.${proc_args.format}
+📺 Resolution: ${pageW}x${pageH}
+✂ Start from second: ${proc_args.fromsecond}s
     \n`);
       }
       else if (cmd === 'var'){
@@ -586,7 +581,7 @@ if (! script) {
     await new Promise((resolve) => {
       const proc = spawn('node', [path.resolve(__dirname, 'puWorker.js'), pageW, pageH, index, totalFramesCount, FRAMES_DIR ], { shell: true });
       proc.stdout.on('data', (data) => {
-        console.log(`NodeOUT: ${data}`);
+        // console.log(`NodeOUT: ${data}`);
       });
       
       proc.stderr.on('data', (data) => {
@@ -594,10 +589,10 @@ if (! script) {
       });
       
       proc.on('close', (code) => {
-        console.log(`node finished`, index);
-        if (code === 0) {
-          log('✅ node finished ok')
-        } else {
+        totalGenCntr += 1;
+        log(`Frames gen: ${(totalGenCntr * 100.0 / totalFramesCount).toFixed(2)}%`, '\033[F');
+
+        if (code !== 0) {
           log('🔴  node failed')
         }
         resolve();
@@ -607,8 +602,6 @@ if (! script) {
   
   async function genScreenshotsForChunk(indexesChunk) {
     for (let i=0; i < indexesChunk.length; i+=1) {
-
-      console.log(1231, indexesChunk[i])
       await genScreenshots(indexesChunk[i]);
     }
   }

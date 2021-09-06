@@ -7,8 +7,10 @@ const fsExtra = require('fs-extra')
 const { ArgumentParser } = require('argparse');
 const { version } = require('../package.json');
 const { exception } = require('console');
- 
+const svgDim = require('svg-dimensions');
+
 const path = require('path');
+const { rejects } = require('assert');
 
 const log = console.log;
 const MAX_FILENAME_DIGS = 7;
@@ -24,11 +26,11 @@ const parser = new ArgumentParser({
  
 parser.add_argument('-v', '--version', { action: 'version', version });
 parser.add_argument('-f', '--format', { help: 'format webm or mp4, or multiple: "webm,mp4"', default: 'mp4' });
-parser.add_argument('-fn', '--filename', { help: 'filename', default: 'out' });
+parser.add_argument('-i', '--input', { help: 'Input .scrp file', default: null });
+parser.add_argument('-fn', '--filename', { help: 'filename', default: null });
 parser.add_argument('-t', '--threads', { help: 'Threads count', default: 4 });
 parser.add_argument('-fs', '--fromsecond', { help: 'Start from second', default: 0 });
 parser.add_argument('-d', '--debughtml', { help: 'Create html files near image to debug', default: false });
-parser.add_argument('-i', '--input', { help: 'Input .scrp file', default: null });
 parser.add_argument('-bd', '--basedir', { help: 'Input dir', default: './' });
 parser.add_argument('-fps', '--fps', { help: 'FPS', default: 25 });
 
@@ -80,6 +82,10 @@ const animationHandlersByMode = {
 
 }
 
+function getFilename() {
+  return proc_args.filename ? proc_args.filename: proc_args.input.split('.').slice(0, -1).join('.');
+}
+
 const ACTION_HANDLERS = {
   move: (i, ags_arr, first_frame_in_animate, frames, mode) => {
     const svg = ags_arr[0];
@@ -101,7 +107,7 @@ const ACTION_HANDLERS = {
       log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
-    const dstScale = +ags_arr[1];
+    const dstScale = +eval(ags_arr[1]);
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], scale: parts[svg].scale};
     }
@@ -113,7 +119,7 @@ const ACTION_HANDLERS = {
       log(`WARN: rotate not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
-    const dstRotate = +ags_arr[1];
+    const dstRotate = +eval(ags_arr[1]);
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], rotate: parts[svg].rotate};
     }
@@ -125,7 +131,7 @@ const ACTION_HANDLERS = {
       log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
-    const dstOpacity = +ags_arr[1];
+    const dstOpacity = +eval(ags_arr[1]);
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], opacity: parts[svg].opacity};
     }
@@ -207,8 +213,22 @@ function firstDefined(...vals) {
 
 let add_part_counter = 0;
 
-const addPart = (filename, left, top, opacity, scale, toBoxHole) => {
-  const f = fsExtra.readFileSync(`${proc_args.basedir}/src/${filename}.svg`, 'utf-8').toString();
+const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
+  const filePath = `${proc_args.basedir}/src/${filename}.svg`;
+  const f = fsExtra.readFileSync(filePath, 'utf-8').toString();
+  
+  await new Promise((resolve) => {
+    svgDim.get(filePath, function(err, dimensions) {
+      if (err) {
+        console.log(`INFO: can't read ${filename} dimensions`, err);
+      } else {
+        global[`\$${filename}__WIDTH`] = dimensions.width;
+        global[`\$${filename}__HEIGHT`] = dimensions.height;
+      }
+      resolve();
+    });
+  })
+  
   const partIds = {};
   let withUniquifiedIDs = f.replace(/id="(.*?)"/g, (_, v) => {
     if (!partIds[v]) {
@@ -227,7 +247,7 @@ const addPart = (filename, left, top, opacity, scale, toBoxHole) => {
     left: +firstDefined(eval(left), 0),
     opacity: +firstDefined(eval(opacity), 1),
     index: Object.values(parts).length,
-    scale: +firstDefined(scale, 1.0),
+    scale: +firstDefined(eval(scale), 1.0),
     rotate: +firstDefined(0, 0),
     extrastyle: '',
     toBoxHole,
@@ -432,24 +452,24 @@ if (! script) {
       if (argSets) {
         argSets = argSets.split('&&');
       }
-      if (cmd === 'init_page') {
+      if (cmd === 'set_frame_size' || cmd === 'init_page') {  //init_page is legacy
         if (pageW) {
           return;
         }
         const args = argSets[0].split(' ');
         pageScale = firstDefined(args[2], 1);
-        pageW = Math.round(args[0] * pageScale);
-        pageH = Math.round(args[1] * pageScale);
+        pageW = Math.round(eval(args[0]) * pageScale);
+        pageH = Math.round(eval(args[1]) * pageScale);
         if (proc_args.fromsecond) {
           skipFrames = proc_args.fromsecond * FPS;
         }
         log(`🎥 Format selected: ${proc_args.format}
-📁 Filename ${proc_args.filename}.${proc_args.format}
+📁 Filename ${getFilename()}.${proc_args.format}
 📺 Resolution: ${pageW}x${pageH}
 ✂ Start from second: ${proc_args.fromsecond}s
     \n`);
       }
-      else if (cmd === 'var'){
+      else if (cmd === 'const' || cmd === 'var'){
         argSets[0].split(' ').forEach((s)=>{
           let v = s.split('=')
           global[v[0]] = eval(v[1])
@@ -458,7 +478,7 @@ if (! script) {
         globalLastFrame = globalLastFrame || globalFramesCounter;
       } else if (cmd === 'place') {
         let args = argSets[0].split(' ');
-        addPart(...args);
+        await addPart(...args);
       }
       else if (cmd === 'place_div') {
         let args = argSets[0].split(' ');
@@ -621,9 +641,12 @@ if (! script) {
     }
     let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.jpg`, ];
     if (format === 'webm') {
-      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${proc_args.filename}.${format}`, '-y']
+      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
     } else if (format === 'mp4') {
-      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${proc_args.filename}.${format}`, '-y']
+      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
+    } else if (format === 'gif') {
+      ffmpeg_args = [...ffmpeg_args, '-vf', `fps=${FPS},split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`, '-loop', '0', `${getFilename()}.${format}`, '-y']
+    
     } else {
       throw exception(`Unknown format: ${format}`);
     }

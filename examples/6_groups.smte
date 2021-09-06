@@ -1,0 +1,24 @@
+const $frameW=600 $frameH=300
+set_frame_size $frameW $frameH
+
+place boomerang1 0 $boomerang1__HEIGHT/2
+place boomerang2 0 $boomerang1__HEIGHT*3/2
+
+
+define_group scenario1:
+  animate_1000 move easein boomerang1 270 -
+  animate_2000 move easeout boomerang1 $frameW-$boomerang1__WIDTH $frameH-$boomerang1__HEIGHT
+
+
+define_group scenario2:
+  animate_1000 move boomerang2 250 -
+  animate_1000 pause
+  animate_1000 move boomerang2 $frameW-$boomerang1__WIDTH 0
+
+define_group rotator:
+  animate_3000 rotate boomerang1 360*4 && rotate boomerang2 360*5
+
+run_groups_together scenario1 scenario2 rotator
+
+
+

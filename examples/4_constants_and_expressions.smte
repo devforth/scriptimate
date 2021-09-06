@@ -1,0 +1,7 @@
+const $frameWidth=600 $frameHeight=300
+const $numberOfSpins=5
+const $ScaleFactor=0.01
+
+set_frame_size $frameWidth $frameHeight
+place boomerang 0 $frameHeight-$boomerang__HEIGHT
+animate_1000 move boomerang $frameWidth-$boomerang__WIDTH 0 && rotate boomerang 360*$numberOfSpins && scale boomerang $ScaleFactor

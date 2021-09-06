@@ -11,40 +11,22 @@ sudo apt-get install libnss3-dev libatk-bridge2.0-0 libcups2 libgtk-3-0 libgbm-d
 
 Required version of ffmpeg >=4.x (Will be installed automatically in Ubuntu 20.04+, when in 18.04 it will be 3.x, which is not compatible)
 
-If you are using custom changable texts, please make sure you have all fonts installed which you use in file:
+If you are using custom changable texts, please make sure you have all fonts installed which you use:
 
 ```
 sudo apt install fonts-roboto
 ```
 
-# Simple example
+# Hello world example
 
 
-1. Create folder of your project and enter it
+# How to run examples from this repo
 
-```
-cd demo1
-```
+1. Pull the repo
+2. `cd example`
+3. Execute `npx scriptimate@latest -i 1_helloworld.smte`
 
-2. Create 
 
-MP4 used by default (faster compile, less optimized)
-
-```
-npx scriptimate
-```
-
-To output in `webm`:
-
-```
-npx scriptimate@latest -i scenario.smte -f webm
-```
-
-or:
-
-```
-npx scriptimate@latest -i main.smte -f mp4
-```
 
 
 # Advanced ussage

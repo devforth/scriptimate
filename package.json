@@ -1,6 +1,6 @@
 {
   "name": "scriptimate",
-  "version": "1.1.7",
+  "version": "1.2.0",
   "description": "",
   "main": "bin/index.js",
   "scripts": {
@@ -23,6 +23,7 @@
     "argparse": "^2.0.1",
     "fs-extra": "^9.0.1",
     "puppeteer": "^10.2.0",
-    "short-uuid": "^4.1.0"
+    "short-uuid": "^4.1.0",
+    "svg-dimensions": "^1.0.2"
   }
 }

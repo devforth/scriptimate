@@ -1,0 +1,4 @@
+set_frame_size 600 300
+place boomerang 0 100
+animate_3000 move boomerang 500 - 
+

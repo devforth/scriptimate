@@ -23,6 +23,29 @@ You will receive:
 ![](./examples/3_parallel_animations.gif)
 
 
+
+# Typical example
+
+
+Create text file `demo.smte`:
+
+```
+set_frame_size 600 300
+place boomerang 0 100
+animate_1000 move boomerang 400 - && rotate boomerang 720 && scale boomerang 2
+```
+
+Place boomerang.svg into `src/` folder. E.g. this one: [boomerang.svg](./examples/src/boomerang.svg)
+
+Run 
+```
+npx scriptimate@latest -i demo.smte -f gif
+```
+
+You will receive:
+
+![](./examples/3_parallel_animations.gif)
+
 # Prerequirements 
 
 You need to have next packages on your system (work for Ubuntu or [Windows WSL2](https://hinty.io/devforth/how-to-install-wsl-2-best-way-to-run-real-linux-on-windows/)):

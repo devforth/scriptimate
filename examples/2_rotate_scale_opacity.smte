@@ -3,6 +3,6 @@ place boomerang 0 100
 animate_1000 move boomerang 250 - 
 animate_1000 rotate boomerang 360
 animate_1000 scale boomerang 2
-
+animate_1000 opacity boomerang 0
 
 

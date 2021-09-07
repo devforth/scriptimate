@@ -1,6 +1,7 @@
 src
 *.mp4
 *.webm
+*.gif
 res
 node_modules
 frames

@@ -639,13 +639,14 @@ if (! script) {
     if (!format.trim()) {
       return;
     }
-    let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.jpg`, ];
+    let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.png`, ];
     if (format === 'webm') {
       ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
     } else if (format === 'mp4') {
       ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
     } else if (format === 'gif') {
-      ffmpeg_args = [...ffmpeg_args, '-vf', `fps=${FPS},split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`, '-loop', '0', `${getFilename()}.${format}`, '-y']
+      // to gen palled for each frame use stats_mode=single and add :new=1 to paletteuse options
+      ffmpeg_args = [...ffmpeg_args, '-vf', `fps=${FPS},split[s0][s1];[s0]palettegen=stats_mode=full[p];[s1][p]paletteuse=dither=sierra2_4a:bayer_scale=5`, '-loop', '0', `${getFilename()}.${format}`, '-y']
     
     } else {
       throw exception(`Unknown format: ${format}`);

@@ -1,7 +1,8 @@
-Generate webm/mp4 videos by animating svg files (e.g. exported from figma or drawn in Inkscape).
+Create webm/mp4/gif videos by animating SVG files (e.g. exported from Figma or any other vector image editor).
 
 # Prerequirements 
-You need to have next packages on your system (Ubuntu or Windows WSL2):
+
+You need to have next packages on your system (work for Ubuntu or [Windows WSL2](https://hinty.io/devforth/how-to-install-wsl-2-best-way-to-run-real-linux-on-windows/)):
 
 ```
 sudo apt-get install libnss3-dev libatk-bridge2.0-0 libcups2 libgtk-3-0 libgbm-dev ffmpeg
@@ -19,13 +20,14 @@ sudo apt install fonts-roboto
 
 # Hello world example
 
+Read here: https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-easy-scripting-way/
+
 
 # How to run examples from this repo
 
 1. Pull the repo
 2. `cd example`
 3. Execute `npx scriptimate@latest -i 1_helloworld.smte`
-
 
 
 
@@ -37,6 +39,10 @@ Under the hood next commands are used:
 ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libx264 -r 25 out.mp4 -y
 ```
 
+Or:
+
 ```
 ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libvpx-vp9 -b:v 2M -r 25 out.webm -y
 ```
+
+After generation phace we frames folder will be persisted so feel free to change ffmpeg command in any way you want.

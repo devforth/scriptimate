@@ -17,7 +17,7 @@ const input = {
 }
 
 const fileHtml = fs.readFileSync(`${input.framesDir}/_index${(''+input.index).padStart(MAX_FILENAME_DIGS, '0')}.html`, 'utf8')
-const jpegFileName = `${input.framesDir}/${(''+(input.index - input.skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.jpg`;
+const jpegFileName = `${input.framesDir}/${(''+(input.index - input.skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.png`;
 
 const genScreenshots = async () => {
     const browser = await puppeteer.launch({args: [
@@ -30,7 +30,9 @@ const genScreenshots = async () => {
     await page.setViewport({width: input.pageW, height: input.pageH, deviceScaleFactor: 1});
     await page._client.send('Emulation.clearDeviceMetricsOverride');
     await page.setContent(fileHtml);
-    await page.screenshot({path: jpegFileName, type: 'jpeg', quality: 100});
+    await page.screenshot({path: jpegFileName, type: 'png'});
+    // await page.screenshot({path: jpegFileName, type: 'jpeg', quality: 100});
+
     
     process.exit();
 }

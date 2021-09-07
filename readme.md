@@ -42,11 +42,12 @@ Run
 npx scriptimate@latest -i demo.smte -f gif
 ```
 
-You will receive:
+You will get:
 
 ![](./examples/3_parallel_animations.gif)
 
-[Read guide here](https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-easy-scripting-way/)
+[Read guide here](https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/)
+
 # Prerequirements 
 
 You need to have next packages on your system (work for Ubuntu or [Windows WSL2](https://hinty.io/devforth/how-to-install-wsl-2-best-way-to-run-real-linux-on-windows/)):
@@ -67,8 +68,7 @@ sudo apt install fonts-roboto
 
 # Hello world example
 
-Read here: https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-easy-scripting-way/
-
+Read here: https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/
 
 # How to run examples from this repo
 

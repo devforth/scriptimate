@@ -1,28 +1,5 @@
 Create webm/mp4/gif videos by animating qualitive SVG files (e.g. exported from Figma or any other vector image editor).
 
-# Typical example
-
-
-Create text file `demo.smte`:
-
-```
-set_frame_size 600 300
-place boomerang 0 100
-animate_1000 move boomerang 400 - && rotate boomerang 720 && scale boomerang 2
-```
-
-Place boomerang.svg into `src/` folder.
-
-Run 
-```
-npx scriptimate@latest -i demo.smte -f gif
-```
-
-You will receive:
-
-![](./examples/3_parallel_animations.gif)
-
-
 
 # Typical example
 
@@ -35,9 +12,10 @@ place boomerang 0 100
 animate_1000 move boomerang 400 - && rotate boomerang 720 && scale boomerang 2
 ```
 
-Place boomerang.svg into `src/` folder. E.g. this one: [boomerang.svg](./examples/src/boomerang.svg)
+Place `boomerang.svg` into `src/` folder. E.g. this one: [boomerang.svg](./examples/src/boomerang.svg)
 
-Run 
+Execute scriptimate to compile video:
+
 ```
 npx scriptimate@latest -i demo.smte -f gif
 ```
@@ -50,7 +28,7 @@ You will get:
 
 # Prerequirements 
 
-You need to have next packages on your system (work for Ubuntu or [Windows WSL2](https://hinty.io/devforth/how-to-install-wsl-2-best-way-to-run-real-linux-on-windows/)):
+You need to have next packages on your system (works for Ubuntu and [Windows WSL2](https://hinty.io/devforth/how-to-install-wsl-2-best-way-to-run-real-linux-on-windows/)):
 
 ```
 sudo apt-get install libnss3-dev libatk-bridge2.0-0 libcups2 libgtk-3-0 libgbm-dev ffmpeg
@@ -58,7 +36,7 @@ sudo apt-get install libnss3-dev libatk-bridge2.0-0 libcups2 libgtk-3-0 libgbm-d
 
 (All apart `ffmpeg` required to run pupeeter which is used to generate high-qaulity frames, some taken from here https://gist.github.com/winuxue/cfef08e2f5fe9dfc16a1d67a4ad38a01)s
 
-Required version of ffmpeg >=4.x (Will be installed automatically in Ubuntu 20.04+, when in 18.04 it will be 3.x, which is not compatible)
+Required version of `ffmpeg >=4.x` (Will be installed automatically in Ubuntu 20.04+, when in 18.04 it will be 3.x, which is not compatible)
 
 If you are using custom changable texts, please make sure you have all fonts installed which you use:
 
@@ -77,7 +55,6 @@ Read here: https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-
 3. Execute `npx scriptimate@latest -i 1_helloworld.smte`
 
 
-
 # Advanced ussage
 
 Under the hood next commands are used:
@@ -86,7 +63,7 @@ Under the hood next commands are used:
 ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libx264 -r 25 out.mp4 -y
 ```
 
-Or:
+Or for webm:
 
 ```
 ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libvpx-vp9 -b:v 2M -r 25 out.webm -y

@@ -46,6 +46,7 @@ You will receive:
 
 ![](./examples/3_parallel_animations.gif)
 
+[Read guide here](https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-easy-scripting-way/)
 # Prerequirements 
 
 You need to have next packages on your system (work for Ubuntu or [Windows WSL2](https://hinty.io/devforth/how-to-install-wsl-2-best-way-to-run-real-linux-on-windows/)):

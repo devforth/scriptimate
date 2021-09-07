@@ -1,4 +1,4 @@
-Create webm/mp4/gif videos by animating qualitive SVG files (e.g. exported from Figma or any other vector image editor).
+Create webm/mp4/gif videos by animating qualitative SVG files (e.g. exported from Figma or any other vector image editor).
 
 
 # Typical example

@@ -19,6 +19,3 @@ define_group rotator:
   animate_3000 rotate boomerang1 360*4 && rotate boomerang2 360*5
 
 run_groups_together scenario1 scenario2 rotator
-
-
-

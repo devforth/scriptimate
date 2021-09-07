@@ -1,4 +1,27 @@
-Create webm/mp4/gif videos by animating SVG files (e.g. exported from Figma or any other vector image editor).
+Create webm/mp4/gif videos by animating qualitive SVG files (e.g. exported from Figma or any other vector image editor).
+
+# Typical example
+
+
+Create text file `demo.smte`:
+
+```
+set_frame_size 600 300
+place boomerang 0 100
+animate_1000 move boomerang 400 - && rotate boomerang 720 && scale boomerang 2
+```
+
+Place boomerang.svg into `src/` folder.
+
+Run 
+```
+npx scriptimate@latest -i demo.smte -f gif
+```
+
+You will receive:
+
+![](./examples/3_parallel_animations.gif)
+
 
 # Prerequirements 
 

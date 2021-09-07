@@ -5,13 +5,7 @@ place boomerang2 0 $boomerang1__HEIGHT
 place boomerang3 0 $boomerang1__HEIGHT*2
 place boomerang4 0 $boomerang1__HEIGHT*3
 
-
 animate_3000 move boomerang1 600-$boomerang1__WIDTH -
   && move easein boomerang2 600-$boomerang1__WIDTH -
   && move easeout boomerang3 600-$boomerang1__WIDTH -
   && move easeinout boomerang4 600-$boomerang1__WIDTH -
-
-
-
-
-

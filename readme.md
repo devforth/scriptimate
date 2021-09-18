@@ -3,7 +3,7 @@
 Create webm/mp4/gif videos by animating qualitative SVG files (e.g. exported from Figma or any other vector image editor).
 
 
-# Typical example
+## Typical example
 
 
 Create text file `demo.smte`:
@@ -28,7 +28,7 @@ You will get:
 
 [Read guide here](https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/)
 
-# Prerequirements 
+## Prerequirements 
 
 You need to have next packages on your system (works for Ubuntu and [Windows WSL2](https://hinty.io/devforth/how-to-install-wsl-2-best-way-to-run-real-linux-on-windows/)):
 
@@ -46,18 +46,18 @@ If you are using custom changable texts, please make sure you have all fonts ins
 sudo apt install fonts-roboto
 ```
 
-# Hello world example
+## Hello world example
 
 Read here: https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/
 
-# How to run examples from this repo
+## How to run examples from this repo
 
 1. Pull the repo
 2. `cd example`
 3. Execute `npx scriptimate@latest -i 1_helloworld.smte`
 
 
-# Advanced ussage
+## Advanced ussage
 
 Under the hood next commands are used:
 

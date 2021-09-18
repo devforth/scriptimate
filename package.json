@@ -1,8 +1,19 @@
 {
   "name": "scriptimate",
-  "version": "1.2.5",
-  "description": "",
+  "version": "1.2.6",
+  "description": "Open-source SVG animation tool",
   "main": "bin/index.js",
+  "keywords": [
+    "svg animation tool",
+    "SVG",
+    "animation",
+    "vector",
+    "figma",
+    "design",
+    "motion design",
+    "webm animation",
+    "mp4 animation"
+  ],
   "scripts": {
     "scriptimate": "node --max_old_space_size=7096 іndex.js"
   },
@@ -10,15 +21,15 @@
     "type": "git",
     "url": "git+https://github.com/devforth/scriptimate.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Ivan Borshchov",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/devforth/scriptimate/issues"
   },
   "bin": {
     "scriptimate": "bin/scriptimate.js"
   },
-  "homepage": "https://github.com/devforth/scriptimate#readme",
+  "homepage": "https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/",
   "dependencies": {
     "argparse": "^2.0.1",
     "fs-extra": "^9.0.1",

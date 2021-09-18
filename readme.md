@@ -1,3 +1,5 @@
+# Scriptimate – OpenSource svg animation tool
+
 Create webm/mp4/gif videos by animating qualitative SVG files (e.g. exported from Figma or any other vector image editor).
 
 

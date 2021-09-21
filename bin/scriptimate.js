@@ -650,6 +650,8 @@ if (! script) {
       ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
     } else if (format === 'mp4') {
       ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
+    } else if (format === 'mov') {
+      ffmpeg_args = [...ffmpeg_args, '-c:v', 'hevc_videotoolbox', '-allow_sw', '1', '-alpha_quality', '0.75', '-vtag', 'hvc1', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
     } else if (format === 'gif') {
       // to gen palled for each frame use stats_mode=single and add :new=1 to paletteuse options
       ffmpeg_args = [...ffmpeg_args, '-vf', `fps=${FPS},split[s0][s1];[s0]palettegen=stats_mode=full[p];[s1][p]paletteuse=dither=sierra2_4a:bayer_scale=5`, '-loop', '0', `${getFilename()}.${format}`, '-y']
@@ -673,13 +675,6 @@ if (! script) {
       console.log(`ffmpeg exited with code ${code}`);
       if (code === 0) {
         log('✅ [4/4] Video encoding done')
-        if (formats.includes('mov')) {
-          const argsToMov = ['-i', `${getFilename()}.${formats[0]}`, `${getFilename()}.mov`, '-y']
-          const mov = spawn('ffmpeg', argsToMov);
-          mov.on('close', (code) => {
-            console.log('Video encoding to mov done')
-          });
-        }
       } else {
         log('🔴 [4/4] Video encoding failed, se output above')
       }
@@ -687,8 +682,6 @@ if (! script) {
 
 
   })
-  
-  
 
 })();
 

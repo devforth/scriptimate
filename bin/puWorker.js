@@ -32,7 +32,7 @@ const genScreenshots = async () => {
     await page.setViewport({width: input.pageW, height: input.pageH, deviceScaleFactor: 1});
     await page._client.send('Emulation.clearDeviceMetricsOverride');
     await page.setContent(fileHtml);
-    await page.screenshot({path: jpegFileName, type: input.format, quality: +input.quality * 100});
+    await page.screenshot({path: jpegFileName, type: input.format, omitBackground: true});
 
     process.exit();
 }

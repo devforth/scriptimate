@@ -636,11 +636,12 @@ if (! script) {
   const indexes = Array.from( Array(totalFramesCount).keys() );
 
   await Promise.all(arrayChunks(indexes, Math.round( (indexes.length) / THREADS) ).map(async (indexesChunk) => await genScreenshotsForChunk(indexesChunk)))
-  
-  
+
+
   log('✅ [3/4] Frames generation done')
-  
-  proc_args.format.split(',').forEach((format) => {
+
+  const formats = proc_args.format.split(',');
+  formats.forEach((format) => {
     if (!format.trim()) {
       return;
     }
@@ -648,29 +649,37 @@ if (! script) {
     if (format === 'webm') {
       ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
     } else if (format === 'mp4') {
-      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, '-colorspace', 'bt470bg', `${getFilename()}.${format}`, '-y']
+      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
     } else if (format === 'gif') {
       // to gen palled for each frame use stats_mode=single and add :new=1 to paletteuse options
       ffmpeg_args = [...ffmpeg_args, '-vf', `fps=${FPS},split[s0][s1];[s0]palettegen=stats_mode=full[p];[s1][p]paletteuse=dither=sierra2_4a:bayer_scale=5`, '-loop', '0', `${getFilename()}.${format}`, '-y']
-    
+
     } else {
       throw exception(`Unknown format: ${format}`);
     }
     log(`💿 Running encoder:\nffmpeg ${ffmpeg_args.join(' ')}`)
+
     const ls = spawn('ffmpeg', ffmpeg_args);
-  
+
     ls.stdout.on('data', (data) => {
       console.log(`ffmpeg: ${data}`);
     });
-    
+
     ls.stderr.on('data', (data) => {
       console.error(`ffmpeg: ${data}`);
     });
-    
+
     ls.on('close', (code) => {
       console.log(`ffmpeg exited with code ${code}`);
       if (code === 0) {
         log('✅ [4/4] Video encoding done')
+        if (formats.includes('mov')) {
+          const argsToMov = ['-i', `${getFilename()}.${formats[0]}`, `${getFilename()}.mov`, '-y']
+          const mov = spawn('ffmpeg', argsToMov);
+          mov.on('close', (code) => {
+            console.log('Video encoding to mov done')
+          });
+        }
       } else {
         log('🔴 [4/4] Video encoding failed, se output above')
       }

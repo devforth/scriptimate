@@ -23,7 +23,7 @@ let totalFramesCount = 0;
 const parser = new ArgumentParser({
   description: `Scriptimate v${version}`
 });
- 
+
 parser.add_argument('-v', '--version', { action: 'version', version });
 parser.add_argument('-f', '--format', { help: 'format webm or mp4, or multiple: "webm,mp4"', default: 'mp4' });
 parser.add_argument('-i', '--input', { help: 'Input .scrp file', default: null });
@@ -33,12 +33,17 @@ parser.add_argument('-fs', '--fromsecond', { help: 'Start from second', default:
 parser.add_argument('-d', '--debughtml', { help: 'Create html files near image to debug', default: false });
 parser.add_argument('-bd', '--basedir', { help: 'Input dir', default: './' });
 parser.add_argument('-fps', '--fps', { help: 'FPS', default: 25 });
+parser.add_argument('-if', '--intermediateFormat', { help: 'png|jpeg', default: 'png' });
+parser.add_argument('-ijq', '--intermediateJpegQuality', { help: '0.0 - 1.0', default: 1 });
 
 
- 
+
 const proc_args = parser.parse_args();
 
 const FPS = +proc_args.fps;
+
+const FORMAT = proc_args.intermediateFormat;
+const QUALITY = +proc_args.intermediateJpegQuality;
 
 
 FRAMES_DIR = proc_args.basedir + '/' + FRAMES_DIR;
@@ -599,7 +604,7 @@ if (! script) {
   
   async function genScreenshots(index) {
     await new Promise((resolve) => {
-      const proc = spawn('node', [path.resolve(__dirname, 'puWorker.js'), pageW, pageH, index, totalFramesCount, FRAMES_DIR ], { shell: true });
+      const proc = spawn('node', [path.resolve(__dirname, 'puWorker.js'), pageW, pageH, index, totalFramesCount, FRAMES_DIR, FORMAT, QUALITY], { shell: true });
       proc.stdout.on('data', (data) => {
         // console.log(`NodeOUT: ${data}`);
       });
@@ -639,11 +644,11 @@ if (! script) {
     if (!format.trim()) {
       return;
     }
-    let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.png`, ];
+    let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.${FORMAT}`, ];
     if (format === 'webm') {
       ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
     } else if (format === 'mp4') {
-      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
+      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, '-colorspace', 'bt470bg', `${getFilename()}.${format}`, '-y']
     } else if (format === 'gif') {
       // to gen palled for each frame use stats_mode=single and add :new=1 to paletteuse options
       ffmpeg_args = [...ffmpeg_args, '-vf', `fps=${FPS},split[s0][s1];[s0]palettegen=stats_mode=full[p];[s1][p]paletteuse=dither=sierra2_4a:bayer_scale=5`, '-loop', '0', `${getFilename()}.${format}`, '-y']

@@ -11,7 +11,6 @@ const svgDim = require('svg-dimensions');
 const YAML = require('yaml');
 
 const path = require('path');
-const { rejects } = require('assert');
 
 const log = console.log;
 const MAX_FILENAME_DIGS = 7;
@@ -70,6 +69,8 @@ function initVariables() {
   groups = {};  // name => Array of lines
   freezer = {};
   pageScale = 1;
+  pageW = 0;
+  pageH = 0;
   groupToAddNext = null;
   skipFrames = 0;
   globalFramesCounter = 0;
@@ -77,15 +78,6 @@ function initVariables() {
   cntr = 0;
   totalFrames = 0;
   totalFramesCount = 0;
-  parts = {};
-  timers = {};
-  groups = {};  // name => Array of lines
-  freezer = {}; 
-  pageScale = 1;
-  groupToAddNext = null;
-  skipFrames = 0;
-  globalFramesCounter = 0;
-  globalLastFrame = null;
 }
 
 
@@ -261,6 +253,12 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole) => 
     }
     return `id="${partIds[v]}"`;
   });
+
+  // for languages where texts might have unstable width, we need remove box limiting
+  withUniquifiedIDs = withUniquifiedIDs.replace(/<filter(.+?)width="(.+?)"(.*?)>/g, (_, v1, mid, v2) => {
+    return `<filter${v1}${v2}>`;
+  });
+
   Object.keys(partIds).forEach((u) => {
     withUniquifiedIDs = withUniquifiedIDs.replaceAll(`#${u}`, `#${partIds[u]}`);
   });
@@ -668,8 +666,6 @@ const runGeneration = async (lang) => {
     }
   }
   
-  
-
   const indexes = Array.from( Array(totalFramesCount).keys() );
 
   await Promise.all(arrayChunks(indexes, Math.round( (indexes.length) / THREADS) ).map(async (indexesChunk) => await genScreenshotsForChunk(indexesChunk)))

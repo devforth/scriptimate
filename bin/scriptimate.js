@@ -8,17 +8,14 @@ const { ArgumentParser } = require('argparse');
 const { version } = require('../package.json');
 const { exception } = require('console');
 const svgDim = require('svg-dimensions');
+const YAML = require('yaml');
 
 const path = require('path');
 const { rejects } = require('assert');
 
 const log = console.log;
 const MAX_FILENAME_DIGS = 7;
-let cntr = 0;
-let totalFrames = 0;
 let FRAMES_DIR = 'frames';
-
-let totalFramesCount = 0;
 
 const parser = new ArgumentParser({
   description: `Scriptimate v${version}`
@@ -43,21 +40,51 @@ const FPS = +proc_args.fps;
 
 FRAMES_DIR = proc_args.basedir + '/' + FRAMES_DIR;
 
-let parts = {};
-const timers = {};
-const boxholes = {};
+let translationsDict;
+let parts;
+let timers;
+let boxholes;
 
-const groups = {};  // name => Array of lines
-const freezer = {}; 
+let groups;  // name => Array of lines
+let freezer; 
 
-let pageScale = 1;
-let pageW;
-let pageH;
-let groupToAddNext = null;
+let pageScale, pageW, pageH;
+let groupToAddNext;
+let skipFrames;
+let globalFramesCounter;
+let globalLastFrame;
+let cntr;
+let totalFrames;
+let totalFramesCount;
+
+
+function initVariables() {
+  parts = {};
+  timers = {};
+  boxholes = {};
+  groups = {};  // name => Array of lines
+  freezer = {};
+  pageScale = 1;
+  groupToAddNext = null;
+  skipFrames = 0;
+  globalFramesCounter = 0;
+  globalLastFrame = null;
+  cntr = 0;
+  totalFrames = 0;
+  totalFramesCount = 0;
+  parts = {};
+  timers = {};
+  groups = {};  // name => Array of lines
+  freezer = {}; 
+  pageScale = 1;
+  groupToAddNext = null;
+  skipFrames = 0;
+  globalFramesCounter = 0;
+  globalLastFrame = null;
+}
+
+
 const arrayChunks = (arr, size) => arr.reduce((acc, e, i) => (i % size ? acc[acc.length - 1].push(e) : acc.push([e]), acc), []);
-let skipFrames = 0;
-let globalFramesCounter = 0;
-let globalLastFrame = null;
 
 // want more? copy from here: https://hinty.io/ivictbor/animation-formulas/
 const animationHandlersByMode = {
@@ -78,12 +105,6 @@ const animationHandlersByMode = {
     t--;
     return -c/2 * (t*(t-2) - 1) + b;
   },	
-
-
-}
-
-function getFilename() {
-  return proc_args.filename ? proc_args.filename: proc_args.input.split('.').slice(0, -1).join('.');
 }
 
 const ACTION_HANDLERS = {
@@ -211,9 +232,8 @@ function firstDefined(...vals) {
   return undefined;
 }
 
-let add_part_counter = 0;
 
-const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
+const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole) => {
   const filePath = `${proc_args.basedir}/src/${filename}.svg`;
   const f = fsExtra.readFileSync(filePath, 'utf-8').toString();
   
@@ -238,7 +258,13 @@ const addPart = async (filename, left, top, opacity, scale, toBoxHole) => {
   });
   Object.keys(partIds).forEach((u) => {
     withUniquifiedIDs = withUniquifiedIDs.replaceAll(`#${u}`, `#${partIds[u]}`);
-  })
+  });
+  if (lang !== 'default') {
+    const strings = translationsDict[lang];
+    Object.keys(strings).forEach((tr) => {
+      withUniquifiedIDs = withUniquifiedIDs.replaceAll(tr, strings[tr]);
+    });
+  }
   parts[filename] = {
     type: 'part',
     filename,
@@ -365,7 +391,18 @@ if (! script) {
 }
 
 
-(async () => {
+const runGeneration = async (lang) => {
+  initVariables();
+
+  function getFilename() {
+    const baseFilename = proc_args.filename ? proc_args.filename: proc_args.input.split('.').slice(0, -1).join('.');
+    let prefix = '';
+    if (lang !== 'default') {
+      prefix = `_${lang}`;
+    }
+    return `${baseFilename}${prefix}`;
+  }
+  
   const doFrame = async () => {
     const html = genHtml(parts);
     if (cntr < skipFrames || (globalLastFrame && cntr > globalLastFrame)) {
@@ -421,7 +458,7 @@ if (! script) {
         groups[groupToAddNext].push(line.trim());
         continue;
       } else {
-        throw `Line can start with whitespace only if it follows after define_group, on line ${file_line + 1}:\n${line}`;
+        throw `Line can start with whitespace only if it follows after define_group on line ${file_line + 1}:\n${line}`;
       }
     } else {
       groupToAddNext = null;
@@ -478,7 +515,7 @@ if (! script) {
         globalLastFrame = globalLastFrame || globalFramesCounter;
       } else if (cmd === 'place') {
         let args = argSets[0].split(' ');
-        await addPart(...args);
+        await addPart(lang, ...args);
       }
       else if (cmd === 'place_div') {
         let args = argSets[0].split(' ');
@@ -635,46 +672,56 @@ if (! script) {
   
   log('✅ [3/4] Frames generation done')
   
-  proc_args.format.split(',').forEach((format) => {
-    if (!format.trim()) {
-      return;
-    }
-    let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.png`, ];
-    if (format === 'webm') {
-      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
-    } else if (format === 'mp4') {
-      ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
-    } else if (format === 'gif') {
-      // to gen palled for each frame use stats_mode=single and add :new=1 to paletteuse options
-      ffmpeg_args = [...ffmpeg_args, '-vf', `fps=${FPS},split[s0][s1];[s0]palettegen=stats_mode=full[p];[s1][p]paletteuse=dither=sierra2_4a:bayer_scale=5`, '-loop', '0', `${getFilename()}.${format}`, '-y']
-    
-    } else {
-      throw exception(`Unknown format: ${format}`);
-    }
-    log(`💿 Running encoder:\nffmpeg ${ffmpeg_args.join(' ')}`)
-    const ls = spawn('ffmpeg', ffmpeg_args);
-  
-    ls.stdout.on('data', (data) => {
-      console.log(`ffmpeg: ${data}`);
-    });
-    
-    ls.stderr.on('data', (data) => {
-      console.error(`ffmpeg: ${data}`);
-    });
-    
-    ls.on('close', (code) => {
-      console.log(`ffmpeg exited with code ${code}`);
-      if (code === 0) {
-        log('✅ [4/4] Video encoding done')
-      } else {
-        log('🔴 [4/4] Video encoding failed, se output above')
+  await (new Promise((resolve) => {
+    proc_args.format.split(',').forEach((format) => {
+      if (!format.trim()) {
+        return;
       }
+      let ffmpeg_args = ['-framerate', `${FPS}/1`, '-i', `${FRAMES_DIR}/%0${MAX_FILENAME_DIGS}d.png`, ];
+      if (format === 'webm') {
+        ffmpeg_args = [...ffmpeg_args, '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
+      } else if (format === 'mp4') {
+        ffmpeg_args = [...ffmpeg_args, '-c:v', 'libx264', '-r', ''+FPS, `${getFilename()}.${format}`, '-y']
+      } else if (format === 'gif') {
+        // to gen palled for each frame use stats_mode=single and add :new=1 to paletteuse options
+        ffmpeg_args = [...ffmpeg_args, '-vf', `fps=${FPS},split[s0][s1];[s0]palettegen=stats_mode=full[p];[s1][p]paletteuse=dither=sierra2_4a:bayer_scale=5`, '-loop', '0', `${getFilename()}.${format}`, '-y']
+      
+      } else {
+        throw exception(`Unknown format: ${format}`);
+      }
+      log(`💿 Running encoder:\nffmpeg ${ffmpeg_args.join(' ')}`)
+      const ls = spawn('ffmpeg', ffmpeg_args);
+    
+      ls.stdout.on('data', (data) => {
+        console.log(`ffmpeg: ${data}`);
+      });
+      
+      ls.stderr.on('data', (data) => {
+        console.error(`ffmpeg: ${data}`);
+      });
+      
+      ls.on('close', (code) => {
+        console.log(`ffmpeg exited with code ${code}`);
+        if (code === 0) {
+          log('✅ [4/4] Video encoding done')
+        } else {
+          log('🔴 [4/4] Video encoding failed, se output above')
+        }
+        resolve();
+      });
     });
 
+  }));
+};
 
-  })
-  
-  
 
+const trans = fsExtra.readFileSync(proc_args.basedir + '/translations.yml').toString();
+if (trans) {
+  translationsDict = YAML.parse(trans);
+}
+
+(async () => {
+  for (let lang of [...Object.keys(translationsDict), 'default']) {
+    await runGeneration(lang);
+  }  
 })();
-

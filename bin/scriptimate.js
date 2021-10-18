@@ -265,6 +265,10 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole) => 
   if (lang !== 'default') {
     const strings = translationsDict[lang];
     Object.keys(strings).forEach((tr) => {
+      // not tested but should prevent from b64 strigs to be affected by translations
+      // withUniquifiedIDs = withUniquifiedIDs.replace(new RegExp(`>(.+?)${tr}(.+?)<`, 'g'), (_, v1, mid, v2) => {
+      //   return `>${v1}${strings[tr]}${v2}<`;
+      // });
       withUniquifiedIDs = withUniquifiedIDs.replaceAll(tr, strings[tr]);
     });
   }

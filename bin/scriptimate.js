@@ -44,7 +44,7 @@ const QUALITY = +proc_args.intermediateJpegQuality;
 
 FRAMES_DIR = proc_args.basedir + '/' + FRAMES_DIR;
 
-let translationsDict;
+let translationsDict = {};
 let parts;
 let timers;
 let boxholes;
@@ -724,9 +724,13 @@ const runGeneration = async (lang) => {
   }));
 };
 
-const trans = fsExtra.readFileSync(proc_args.basedir + '/translations.yml').toString();
-if (trans) {
-  translationsDict = YAML.parse(trans);
+try {
+  const trans = fsExtra.readFileSync(proc_args.basedir + '/translations.yml').toString();
+  if (trans) {
+    translationsDict = YAML.parse(trans);
+  }
+} catch (e) {
+  console.log('Running without translations.yml')
 }
 
 (async () => {

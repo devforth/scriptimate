@@ -231,9 +231,17 @@ function firstDefined(...vals) {
 
 
 const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole) => {
-  const filePath = `${proc_args.basedir}/src/${filename}.svg`;
-  const f = fsExtra.readFileSync(filePath, 'utf-8').toString();
-  
+  let f;
+
+  const readFname = (fn) => {
+    const filePath = `${proc_args.basedir}/src/${fn}.svg`;
+    return fsExtra.readFileSync(filePath, 'utf-8').toString();
+  };
+  try {
+    f = readFname(`${filename}_${lang}`)
+  } catch (e) {
+    f = readFname(filename)
+  }
   await new Promise((resolve) => {
     svgDim.get(filePath, function(err, dimensions) {
       if (err) {

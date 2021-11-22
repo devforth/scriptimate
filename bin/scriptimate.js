@@ -243,7 +243,7 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole) => 
     f = readFname(filename)
   }
   await new Promise((resolve) => {
-    svgDim.get(filePath, function(err, dimensions) {
+    svgDim.get(f, function(err, dimensions) {
       if (err) {
         console.log(`INFO: can't read ${filename} dimensions`, err);
       } else {
@@ -252,8 +252,7 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole) => 
       }
       resolve();
     });
-  })
-  
+  });
   const partIds = {};
   let withUniquifiedIDs = f.replace(/id="(.*?)"/g, (_, v) => {
     if (!partIds[v]) {

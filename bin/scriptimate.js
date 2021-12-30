@@ -155,6 +155,18 @@ const ACTION_HANDLERS = {
     }
     parts[svg].opacity = animationHandlersByMode[mode](i, freezer[svg].opacity, dstOpacity - freezer[svg].opacity, frames);
   },
+  dashoffset: (i, ags_arr, first_frame_in_animate, frames, mode) => {
+    const svg = ags_arr[0];
+    if (!parts[svg]) {
+      log(`WARN: dashoffset not applied, part not found: ${svg}, line: \n${cmd}\n`);
+      return;
+    }
+    const dstOffset = +eval(ags_arr[1]);
+    if (first_frame_in_animate) {
+      freezer[svg] = {...freezer[svg], dashoffset: parts[svg].dashoffset};
+    }
+    parts[svg].dashoffset = animationHandlersByMode[mode](i, freezer[svg].dashoffset, dstOffset - freezer[svg].dashoffset, frames);
+  },
   resize_div: (i, ags_arr, first_frame_in_animate, frames, mode) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
@@ -186,7 +198,7 @@ const genHtml = (allParts) => {
     if (p.type === 'part') {
       const bh = boxholes[p.toBoxHole] || {left: 0, top:0};
 
-      const partHTML = `<div style="position:${bh.name ? "absolute": "fixed"};top:${p.top-bh.top}px;left:${p.left-bh.left}px;opacity:${p.opacity};transform:scale(${p.scale}) rotate(${p.rotate}deg);${p.extrastyle}">${p.content}</div>`;
+      const partHTML = `<div style="position:${bh.name ? "absolute": "fixed"};top:${p.top-bh.top}px;left:${p.left-bh.left}px;opacity:${p.opacity};transform:scale(${p.scale}) rotate(${p.rotate}deg);stroke-dashoffset:${p.dashoffset};${p.extrastyle}">${p.content}</div>`;
       if (p.toBoxHole) {
         return `${acc}<div style="position:fixed;overflow:hidden;top:${bh.top}px;left:${bh.left}px;width:${bh.w}px;height:${bh.h}px;">
           ${partHTML}</div>`;
@@ -230,7 +242,7 @@ function firstDefined(...vals) {
 }
 
 
-const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole) => {
+const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, dashoffset) => {
   let f;
 
   const readFname = (fn) => {
@@ -289,6 +301,7 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole) => 
     index: Object.values(parts).length,
     scale: +firstDefined(eval(scale), 1.0),
     rotate: +firstDefined(0, 0),
+    dashoffset: +firstDefined(eval(dashoffset), 0),
     extrastyle: '',
     toBoxHole,
   };
@@ -308,6 +321,7 @@ const addDiv = (name, left, top, w, h, opacity, c, toBoxHole) => {
     h: +firstDefined(eval(h), 0),
     index: Object.values(parts).length,
     rotate: +firstDefined(0, 0),
+    dashoffset: +firstDefined(0, 0),
     content: content,
     toBoxHole,
   }

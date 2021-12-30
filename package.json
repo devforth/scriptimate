@@ -1,6 +1,6 @@
 {
   "name": "scriptimate",
-  "version": "1.2.10",
+  "version": "1.2.14",
   "description": "Open-source SVG animation tool",
   "main": "bin/index.js",
   "keywords": [

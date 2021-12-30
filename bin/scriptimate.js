@@ -249,13 +249,15 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, das
     const filePath = `${proc_args.basedir}/src/${fn}.svg`;
     return fsExtra.readFileSync(filePath, 'utf-8').toString();
   };
+  let fname = `${filename}_${lang}`;
   try {
-    f = readFname(`${filename}_${lang}`)
+    f = readFname(fname);
   } catch (e) {
-    f = readFname(filename)
+    fname = filename;
+    f = readFname(fname)
   }
   await new Promise((resolve) => {
-    svgDim.get(f, function(err, dimensions) {
+    svgDim.get(`${proc_args.basedir}/src/${fname}.svg`, function(err, dimensions) {
       if (err) {
         console.log(`INFO: can't read ${filename} dimensions`, err);
       } else {

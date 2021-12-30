@@ -1,0 +1,6 @@
+set_frame_size 300 300
+
+place stroke 10 10 1 1 0 -1000
+addstyle stroke stroke-dasharray:1000;
+
+animate_2000 dashoffset stroke 0

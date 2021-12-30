@@ -33,7 +33,7 @@ You will get:
 You need to have next packages on your system (works for Ubuntu and [Windows WSL2](https://hinty.io/devforth/how-to-install-wsl-2-best-way-to-run-real-linux-on-windows/)):
 
 ```
-sudo apt-get install libnss3-dev libatk-bridge2.0-0 libcups2 libgtk-3-0 libgbm-dev ffmpeg
+sudo apt install libnss3-dev libatk-bridge2.0-0 libcups2 libgtk-3-0 libgbm-dev ffmpeg
 ```
 
 (All apart `ffmpeg` required to run pupeeter which is used to generate high-qaulity frames, some taken from here https://gist.github.com/winuxue/cfef08e2f5fe9dfc16a1d67a4ad38a01)s
@@ -49,6 +49,17 @@ sudo apt install fonts-roboto
 ## Hello world example
 
 Read here: https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/
+
+# Development
+
+Just do:
+
+```
+npm ci
+cd examples
+node ../bin/scriptimate.js -i 7_dashoffset.smte -f gif
+```
+
 
 ## How to run examples from this repo
 

@@ -2,6 +2,38 @@
 
 Create webm/mp4/gif videos by animating qualitative SVG files (e.g. exported from Figma or any other vector image editor).
 
+## CLI ussage
+
+```
+usage: scriptimate [-h] [-v] [-f FORMAT] [-i INPUT] [-fn FILENAME] [-t THREADS] [-fs FROMSECOND] [-d DEBUGHTML] [-bd BASEDIR] [-fps FPS]
+                   [-if INTERMEDIATEFORMAT] [-ijq INTERMEDIATEJPEGQUALITY]
+
+Scriptimate v1.2.14
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+  -f FORMAT, --format FORMAT
+                        format webm or mp4, or multiple: "webm,mp4"
+  -i INPUT, --input INPUT
+                        Input .scrp file
+  -fn FILENAME, --filename FILENAME
+                        filename
+  -t THREADS, --threads THREADS
+                        Threads count
+  -fs FROMSECOND, --fromsecond FROMSECOND
+                        Start from second
+  -d DEBUGHTML, --debughtml DEBUGHTML
+                        Create html files near image to debug
+  -bd BASEDIR, --basedir BASEDIR
+                        Input dir
+  -fps FPS, --fps FPS   FPS
+  -if INTERMEDIATEFORMAT, --intermediateFormat INTERMEDIATEFORMAT
+                        png|jpeg
+  -ijq INTERMEDIATEJPEGQUALITY, --intermediateJpegQuality INTERMEDIATEJPEGQUALITY
+                        0.0 - 1.0
+```
+
 
 ## Typical example
 

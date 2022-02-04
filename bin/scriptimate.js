@@ -245,6 +245,11 @@ function firstDefined(...vals) {
 
 const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, dashoffset) => {
   let f;
+  if (parts[filename]) {
+    // treat second place as attmpt to bump an index
+    parts[filename].index = Object.values(parts).reduce((a, p) => Math.max(a, p.index), 0) + 1;
+    return;
+  }
 
   const readFname = (fn) => {
     const filePath = `${proc_args.basedir}/src/${fn}.svg`;
@@ -301,7 +306,7 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, das
     top: +firstDefined(eval(top), 0),
     left: +firstDefined(eval(left), 0),
     opacity: +firstDefined(eval(opacity), 1),
-    index: Object.values(parts).length,
+    index: Object.values(parts).reduce((a, p) => Math.max(a, p.index), 0) + 1,
     scale: +firstDefined(eval(scale), 1.0),
     rotate: +firstDefined(0, 0),
     dashoffset: +firstDefined(eval(dashoffset), 0),
@@ -376,8 +381,8 @@ const schedule_eval = (name, ms, ...rest) => {
         return parts[part].content;
       }
       const set = (part, value) => {
-        parts[part].content = eval(value);
-        global[part+'_value'] = eval(value)
+        parts[part].content = value;
+        global[part+'_value'] = value;
       }
       eval(code)
     },
@@ -421,8 +426,8 @@ if (! script) {
   throw "Please specify .smte file e.g. -i demo.smte"
 }
 
-const htmlHashed = {};
-const reuseFrames = {};
+const frameAbsIndexByHTMLHash = {};
+const reuseAbsFrameIndexForAbsFrameIndex = {};
 
 const runGeneration = async (lang) => {
   initVariables();
@@ -437,22 +442,25 @@ const runGeneration = async (lang) => {
   }
   
   const doFrame = async () => {
-    const html = genHtml(parts);
-    const hash = crypto.createHash('sha1').update(html).digest('base64');
+    
     if (cntr < skipFrames || (globalLastFrame && cntr > globalLastFrame)) {
       cntr += 1;
       return;
     }
     totalFramesCount += 1;
-    if (!htmlHashed[hash]) {
-      htmlHashed[hash] = cntr;
+
+    const html = genHtml(parts);
+    const hash = crypto.createHash('sha1').update(html).digest('base64');
+    
+    if (!frameAbsIndexByHTMLHash[hash]) {
+      frameAbsIndexByHTMLHash[hash] = cntr;
       await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
-        if(err) {
-            return console.log(err);
+        if (err) {
+          return console.log(err);
         }
       });
     } else {
-      reuseFrames[cntr] = htmlHashed[hash];
+      reuseAbsFrameIndexForAbsFrameIndex[cntr] = frameAbsIndexByHTMLHash[hash];
     }
     
     cntr += 1;
@@ -667,16 +675,25 @@ const runGeneration = async (lang) => {
 
   
   log('✅ [2/4] HTML generation done')
-  log(`🕗 Total duration: ${(globalFramesCounter / FPS).toFixed(1)}s FPS: ${FPS}`)
+  log(`🕗 Total duration: ${(globalFramesCounter / FPS).toFixed(1)}s 🎞️ FPS: ${FPS}`)
 
   const THREADS = + proc_args.threads;
   let totalGenCntr = 0;
   
   async function genScreenshots(index) {
+    const absoluteIndex = index + skipFrames;
     await new Promise((resolve) => {
-      if (!reuseFrames[index]) {
+      if (!reuseAbsFrameIndexForAbsFrameIndex[absoluteIndex]) {
         
-        const proc = spawn('node', [path.resolve(__dirname, 'puWorker.js'), pageW, pageH, index, totalFramesCount, FRAMES_DIR, FORMAT, QUALITY, skipFrames || 0], { shell: true });
+        const proc = spawn('node', [
+          path.resolve(__dirname, 'puWorker.js'), 
+          pageW, pageH, 
+          absoluteIndex, 
+          totalFramesCount, 
+          FRAMES_DIR, 
+          FORMAT, 
+          QUALITY, skipFrames || 0
+        ], { shell: true });
         proc.stdout.on('data', (data) => {
           // console.log(`NodeOUT: ${data}`);
         });
@@ -688,6 +705,7 @@ const runGeneration = async (lang) => {
           log(`Frames gen: ${(totalGenCntr * 100.0 / totalFramesCount).toFixed(2)}%`, '\033[F');
           if (code !== 0) {
             log('🔴  node failed')
+            process.exit(-1)
           }
           resolve();
         });
@@ -695,14 +713,15 @@ const runGeneration = async (lang) => {
         totalGenCntr += 1;
         resolve();
       }
-    })
+    });
   }
 
   async function copyReusedScreenshots(index) {
-    if (reuseFrames[index]) {
-      const reuseIndex = reuseFrames[index];
-      const srcFile = `${FRAMES_DIR}/${(''+(reuseIndex - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.${FORMAT}`;
-      const dstFile = `${FRAMES_DIR}/${(''+(index - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.${FORMAT}`;
+    const absoluteIndex = index + skipFrames;
+    if (reuseAbsFrameIndexForAbsFrameIndex[absoluteIndex]) {
+      const reuseAbsIndex = reuseAbsFrameIndexForAbsFrameIndex[absoluteIndex];
+      const srcFile = `${FRAMES_DIR}/${(''+(reuseAbsIndex - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.${FORMAT}`;
+      const dstFile = `${FRAMES_DIR}/${(''+(index)).padStart(MAX_FILENAME_DIGS, '0')}.${FORMAT}`;
       fsExtra.copyFile(srcFile, dstFile, (err) => {
         if (err) {
           log(`🔴  failed to copy frame ${srcFile} to ${dstFile}`,)
@@ -720,7 +739,9 @@ const runGeneration = async (lang) => {
   
   const indexes = Array.from( Array(totalFramesCount).keys() );
 
-  await Promise.all(arrayChunks(indexes, Math.round( (indexes.length) / THREADS) ).map(async (indexesChunk) => await genScreenshotsForChunk(indexesChunk)))
+  await Promise.all(
+    arrayChunks(indexes, Math.round( (indexes.length) / THREADS) ).map(async (indexesChunk) => await genScreenshotsForChunk(indexesChunk))
+  )
 
   // another run to copy all duplicate files
   indexes.forEach(copyReusedScreenshots);

@@ -119,6 +119,8 @@ const ACTION_HANDLERS = {
 
     parts[svg].top = animationHandlersByMode[mode](i, freezer[svg].top, dstTop - freezer[svg].top, frames);
     parts[svg].left = animationHandlersByMode[mode](i, freezer[svg].left, dstLeft - freezer[svg].left, frames);
+    global[`\$${svg}__X`] = parts[svg].left;
+    global[`\$${svg}__Y`] = parts[svg].top;
   },
   scale: (i, ags_arr, first_frame_in_animate, frames, mode) => {
     const svg = ags_arr[0];
@@ -314,6 +316,8 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, das
     toBoxHole,
   };
   freezer[filename] = {};
+  global[`\$${filename}__X`] = parts[filename].left;
+  global[`\$${filename}__Y`] = parts[filename].top;
 };
 
 const addDiv = (name, left, top, w, h, opacity, c, toBoxHole) => {
@@ -333,6 +337,8 @@ const addDiv = (name, left, top, w, h, opacity, c, toBoxHole) => {
     content: content,
     toBoxHole,
   }
+  global[`\$${name}__X`] = parts[name].left;
+  global[`\$${name}__Y`] = parts[name].top;
 }
 
 const addBoxHole = (name, left, top, w, h) => {
@@ -373,8 +379,8 @@ const schedule_eval = (name, ms, ...rest) => {
 
   timers[name] = setPseudoInterval(
     () => {
-      const incr = (part) => {
-        parts[part].content = +parts[part].content + 1;
+      const incr = (part, delta) => {
+        parts[part].content = +parts[part].content + (delta || 1);
         global[part+'_value'] = parts[part].content
       }
       const get = (part) => {
@@ -675,7 +681,7 @@ const runGeneration = async (lang) => {
 
   
   log('✅ [2/4] HTML generation done')
-  log(`🕗 Total duration: ${(globalFramesCounter / FPS).toFixed(1)}s 🎞️ FPS: ${FPS}`)
+  log(`🕗 Total duration: ${(globalFramesCounter / FPS).toFixed(1)}s 🎞️  FPS: ${FPS}`)
 
   const THREADS = + proc_args.threads;
   let totalGenCntr = 0;

@@ -9,6 +9,7 @@ const { version } = require('../package.json');
 const { exception } = require('console');
 const svgDim = require('svg-dimensions');
 const YAML = require('yaml');
+const crypto = require('crypto');
 
 const path = require('path');
 
@@ -420,6 +421,8 @@ if (! script) {
   throw "Please specify .smte file e.g. -i demo.smte"
 }
 
+const htmlHashed = {};
+const reuseFrames = {};
 
 const runGeneration = async (lang) => {
   initVariables();
@@ -435,17 +438,22 @@ const runGeneration = async (lang) => {
   
   const doFrame = async () => {
     const html = genHtml(parts);
+    const hash = crypto.createHash('sha1').update(html).digest('base64');
     if (cntr < skipFrames || (globalLastFrame && cntr > globalLastFrame)) {
       cntr += 1;
       return;
     }
     totalFramesCount += 1;
-    
-    await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
-      if(err) {
-          return console.log(err);
-      }
-    });
+    if (!htmlHashed[hash]) {
+      htmlHashed[hash] = cntr;
+      await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
+        if(err) {
+            return console.log(err);
+        }
+      });
+    } else {
+      reuseFrames[cntr] = htmlHashed[hash];
+    }
     
     cntr += 1;
     log(`HTML pages gen: ${(cntr * 100.0 / (totalFrames + 1)).toFixed(2)}%`, '\033[F');
@@ -666,27 +674,44 @@ const runGeneration = async (lang) => {
   
   async function genScreenshots(index) {
     await new Promise((resolve) => {
-      const proc = spawn('node', [path.resolve(__dirname, 'puWorker.js'), pageW, pageH, index, totalFramesCount, FRAMES_DIR, FORMAT, QUALITY], { shell: true });
-      proc.stdout.on('data', (data) => {
-        // console.log(`NodeOUT: ${data}`);
-      });
-      
-      proc.stderr.on('data', (data) => {
-        console.error(`NodeERR: ${data}`);
-      });
-      
-      proc.on('close', (code) => {
+      if (!reuseFrames[index]) {
+        
+        const proc = spawn('node', [path.resolve(__dirname, 'puWorker.js'), pageW, pageH, index, totalFramesCount, FRAMES_DIR, FORMAT, QUALITY, skipFrames || 0], { shell: true });
+        proc.stdout.on('data', (data) => {
+          // console.log(`NodeOUT: ${data}`);
+        });
+        proc.stderr.on('data', (data) => {
+          console.error(`NodeERR: ${data}`);
+        });
+        proc.on('close', (code) => {
+          totalGenCntr += 1;
+          log(`Frames gen: ${(totalGenCntr * 100.0 / totalFramesCount).toFixed(2)}%`, '\033[F');
+          if (code !== 0) {
+            log('🔴  node failed')
+          }
+          resolve();
+        });
+      } else {
         totalGenCntr += 1;
-        log(`Frames gen: ${(totalGenCntr * 100.0 / totalFramesCount).toFixed(2)}%`, '\033[F');
-
-        if (code !== 0) {
-          log('🔴  node failed')
-        }
         resolve();
-      });
+      }
     })
   }
-  
+
+  async function copyReusedScreenshots(index) {
+    if (reuseFrames[index]) {
+      const reuseIndex = reuseFrames[index];
+      const srcFile = `${FRAMES_DIR}/${(''+(reuseIndex - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.${FORMAT}`;
+      const dstFile = `${FRAMES_DIR}/${(''+(index - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.${FORMAT}`;
+      fsExtra.copyFile(srcFile, dstFile, (err) => {
+        if (err) {
+          log(`🔴  failed to copy frame ${srcFile} to ${dstFile}`,)
+          throw err;
+        }
+      });
+    }
+  }
+
   async function genScreenshotsForChunk(indexesChunk) {
     for (let i=0; i < indexesChunk.length; i+=1) {
       await genScreenshots(indexesChunk[i]);
@@ -696,6 +721,11 @@ const runGeneration = async (lang) => {
   const indexes = Array.from( Array(totalFramesCount).keys() );
 
   await Promise.all(arrayChunks(indexes, Math.round( (indexes.length) / THREADS) ).map(async (indexesChunk) => await genScreenshotsForChunk(indexesChunk)))
+
+  // another run to copy all duplicate files
+  indexes.forEach(copyReusedScreenshots);
+
+
 
 
   log('✅ [3/4] Frames generation done')

@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 
-const {promises: fs} = require('fs');
-const short = require('short-uuid');
+const {promises: fs, constants: fsConstants} = require('fs');
 const { spawn, execFile } = require('child_process');
-const fsExtra = require('fs-extra')
 const { ArgumentParser } = require('argparse');
 const { version } = require('../package.json');
 const { exception } = require('console');
 const svgDim = require('svg-dimensions');
 const YAML = require('yaml');
 const crypto = require('crypto');
+const os = require('os');
+
+let uniq = 0;
+function generateUniqueId() {
+  return 1237841 + uniq++;
+}
 
 const path = require('path');
 
@@ -32,6 +36,8 @@ parser.add_argument('-bd', '--basedir', { help: 'Input dir', default: './' });
 parser.add_argument('-fps', '--fps', { help: 'FPS', default: 25 });
 parser.add_argument('-if', '--intermediateFormat', { help: 'png|jpeg', default: 'png' });
 parser.add_argument('-ijq', '--intermediateJpegQuality', { help: '0.0 - 1.0', default: 1 });
+parser.add_argument('-nc', '--nocache', { help: "Don't use screenshots cache (but still generate it), for develeopmnt", default: false });
+
 
 
 
@@ -253,16 +259,17 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, das
     return;
   }
 
-  const readFname = (fn) => {
+  const readFname = async (fn) => {
     const filePath = `${proc_args.basedir}/src/${fn}.svg`;
-    return fsExtra.readFileSync(filePath, 'utf-8').toString();
+    const fileBuffer = await fs.readFile(filePath, { encoding: 'utf-8' });
+    return fileBuffer.toString();
   };
   let fname = `${filename}_${lang}`;
   try {
-    f = readFname(fname);
+    f = await readFname(fname);
   } catch (e) {
     fname = filename;
-    f = readFname(fname)
+    f = await readFname(fname)
   }
   await new Promise((resolve) => {
     svgDim.get(`${proc_args.basedir}/src/${fname}.svg`, function(err, dimensions) {
@@ -278,7 +285,7 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, das
   const partIds = {};
   let withUniquifiedIDs = f.replace(/id="(.*?)"/g, (_, v) => {
     if (!partIds[v]) {
-      partIds[v] = `id_${short.generate()}`;
+      partIds[v] = `id_${generateUniqueId()}`;
     }
     return `id="${partIds[v]}"`;
   });
@@ -427,13 +434,12 @@ const unschedule = (name) => {
   delete timers[name];
 }
 
-const script = fsExtra.readFileSync(proc_args.basedir + '/' + proc_args.input).toString();
-if (! script) {
-  throw "Please specify .smte file e.g. -i demo.smte"
-}
+
 
 const frameAbsIndexByHTMLHash = {};
 const reuseAbsFrameIndexForAbsFrameIndex = {};
+const frameHashByAbsIndex = {};
+let cacheDir = '';
 
 const runGeneration = async (lang) => {
   initVariables();
@@ -456,15 +462,28 @@ const runGeneration = async (lang) => {
     totalFramesCount += 1;
 
     const html = genHtml(parts);
-    const hash = crypto.createHash('sha1').update(html).digest('base64');
+    const hash = crypto.createHash('sha1').update(html).digest('base64url');
+    frameHashByAbsIndex[cntr] = hash;
     
     if (!frameAbsIndexByHTMLHash[hash]) {
       frameAbsIndexByHTMLHash[hash] = cntr;
-      await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
-        if (err) {
-          return console.log(err);
-        }
-      });
+
+      const screenshotCachedPath = path.join(cacheDir, `${hash}.${FORMAT}`);
+      
+      const noHTMLNeeded = false;
+      try {
+        await fs.access(screenshotCachedPath, fsConstants.F_OK);
+        noHTMLNeeded = true;
+      } catch (e) {
+        // no file exists to copy, so need generate
+      }
+      if (!noHTMLNeeded) {
+        await fs.writeFile(`${FRAMES_DIR}/_index${(''+cntr).padStart(MAX_FILENAME_DIGS, '0')}.html`, html, function(err) {
+          if (err) {
+            return console.log(err);
+          }
+        });
+      }
     } else {
       reuseAbsFrameIndexForAbsFrameIndex[cntr] = frameAbsIndexByHTMLHash[hash];
     }
@@ -473,7 +492,15 @@ const runGeneration = async (lang) => {
     log(`HTML pages gen: ${(cntr * 100.0 / (totalFrames + 1)).toFixed(2)}%`, '\033[F');
   }
 
-  
+  const scriptBuffer = await fs.readFile(proc_args.basedir + '/' + proc_args.input);
+  const script = scriptBuffer.toString();
+  if (! script) {
+    throw "Please specify .smte file e.g. -i demo.smte"
+  }
+
+  cacheDir = path.join(os.tmpdir(), 'scriptimateCache');
+  await fs.mkdir(cacheDir, { recursive: true });
+
   let totalMs = 0;
   for (v of script.split('\n')) {
     const d1 = v.split(' ');
@@ -485,8 +512,8 @@ const runGeneration = async (lang) => {
     
   }
 
-  fsExtra.emptyDirSync(FRAMES_DIR);
-
+  await fs.rmdir(FRAMES_DIR, { recursive: true });
+  await fs.mkdir(FRAMES_DIR, { recursive: true });
 
   const processed_lines = []
   for (const line of script.split('\n')) {
@@ -688,6 +715,19 @@ const runGeneration = async (lang) => {
   
   async function genScreenshots(index) {
     const absoluteIndex = index + skipFrames;
+    const htmlHash = frameHashByAbsIndex[absoluteIndex];
+    const screenshotCachedPath = path.join(cacheDir, `${htmlHash}.${FORMAT}`);
+    const dstFile = `${FRAMES_DIR}/${(''+(index)).padStart(MAX_FILENAME_DIGS, '0')}.${FORMAT}`;
+    
+    try {
+      if (!proc_args.nocache) {
+        await fs.copyFile(screenshotCachedPath, dstFile);
+        return;
+      }
+    } catch (e) {
+      // console.log('errr', e);
+      // no file exists to copy, so need generate
+    }
     await new Promise((resolve) => {
       if (!reuseAbsFrameIndexForAbsFrameIndex[absoluteIndex]) {
         
@@ -706,13 +746,14 @@ const runGeneration = async (lang) => {
         proc.stderr.on('data', (data) => {
           console.error(`NodeERR: ${data}`);
         });
-        proc.on('close', (code) => {
+        proc.on('close', async (code) => {
           totalGenCntr += 1;
           log(`Frames gen: ${(totalGenCntr * 100.0 / totalFramesCount).toFixed(2)}%`, '\033[F');
           if (code !== 0) {
             log('🔴  node failed')
             process.exit(-1)
           }
+          await fs.copyFile(dstFile, screenshotCachedPath);
           resolve();
         });
       } else {
@@ -728,12 +769,12 @@ const runGeneration = async (lang) => {
       const reuseAbsIndex = reuseAbsFrameIndexForAbsFrameIndex[absoluteIndex];
       const srcFile = `${FRAMES_DIR}/${(''+(reuseAbsIndex - skipFrames)).padStart(MAX_FILENAME_DIGS, '0')}.${FORMAT}`;
       const dstFile = `${FRAMES_DIR}/${(''+(index)).padStart(MAX_FILENAME_DIGS, '0')}.${FORMAT}`;
-      fsExtra.copyFile(srcFile, dstFile, (err) => {
-        if (err) {
-          log(`🔴  failed to copy frame ${srcFile} to ${dstFile}`,)
-          throw err;
-        }
-      });
+      try {
+        await fs.copyFile(srcFile, dstFile);
+      } catch (e) {
+        log(`🔴  failed to copy frame ${srcFile} to ${dstFile}`)
+        throw e;
+      }
     }
   }
 
@@ -804,14 +845,17 @@ const runGeneration = async (lang) => {
   }));
 };
 
-try {
-  const trans = fsExtra.readFileSync(proc_args.basedir + '/translations.yml').toString();
-  if (trans) {
-    translationsDict = YAML.parse(trans);
+(async () => {
+  try {
+    const transBuffer = await fs.readFile(proc_args.basedir + '/translations.yml');
+    const transStr = transBuffer.toString();
+    if (transStr) {
+      translationsDict = YAML.parse(transStr);
+    }
+  } catch (e) {
+    console.log('Running without translations.yml')
   }
-} catch (e) {
-  console.log('Running without translations.yml')
-}
+})();
 
 (async () => {
   for (let lang of [...Object.keys(translationsDict), 'default']) {

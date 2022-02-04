@@ -34,6 +34,14 @@ optional arguments:
                         0.0 - 1.0
 ```
 
+## Build performance
+
+🪧 Scriptimate uses `/tmp` to store build cache, so to improve build speed even more, make sure `/tmp` it is mounted on RAM in `/etc/fstab`
+
+```
+tmpfs /tmp tmpfs nosuid,nodev,noatime 0 0
+```
+
 
 ## Typical example
 

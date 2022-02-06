@@ -26,17 +26,17 @@ const parser = new ArgumentParser({
 });
 
 parser.add_argument('-v', '--version', { action: 'version', version });
-parser.add_argument('-f', '--format', { help: 'format webm or mp4, or multiple: "webm,mp4"', default: 'mp4' });
-parser.add_argument('-i', '--input', { help: 'Input .scrp file', default: null });
-parser.add_argument('-fn', '--filename', { help: 'filename', default: null });
-parser.add_argument('-t', '--threads', { help: 'Threads count', default: 4 });
-parser.add_argument('-fs', '--fromsecond', { help: 'Start from second', default: 0 });
-parser.add_argument('-d', '--debughtml', { help: 'Create html files near image to debug', default: false });
-parser.add_argument('-bd', '--basedir', { help: 'Input dir', default: './' });
+parser.add_argument('-f', '--format', { help: 'output file format, or multiple via comma: "webm,mp4". Available formats: mov, mp4, gif, webm, default is mp4', default: 'mp4' });
+parser.add_argument('-i', '--input', { help: 'Input .smte script file', default: null });
+parser.add_argument('-fn', '--filename', { help: 'output filename', default: null });
+parser.add_argument('-t', '--threads', { help: 'Threads count used during compiling, defaults to 4', default: 4 });
+parser.add_argument('-fs', '--fromsecond', { help: 'Start from defined second (could be used to debug animation faster, also you can use "exis" keyword in smte script)', default: 0 });
+parser.add_argument('-d', '--debughtml', { help: 'Create HTML files near image to debug', default: false });
+parser.add_argument('-bd', '--basedir', { help: 'Input directory (folder where src subfolder and .smte file is located)', default: './' });
 parser.add_argument('-fps', '--fps', { help: 'FPS', default: 25 });
-parser.add_argument('-if', '--intermediateFormat', { help: 'png|jpeg', default: 'png' });
-parser.add_argument('-ijq', '--intermediateJpegQuality', { help: '0.0 - 1.0', default: 1 });
-parser.add_argument('-nc', '--nocache', { help: "Don't use screenshots cache (but still generate it), for develeopmnt", default: false });
+parser.add_argument('-if', '--intermediateFormat', { help: 'Screenshots format used to compile video png|jpeg, defaults to png', default: 'png' });
+parser.add_argument('-ijq', '--intermediateJpegQuality', { help: 'JPEG quality 0.0 - 1.0, defaults to 1', default: 1 });
+parser.add_argument('-nc', '--nocache', { help: "Don't use screenshots cache (but still generate it), for scriptimate develeopmnt", default: false });
 
 
 

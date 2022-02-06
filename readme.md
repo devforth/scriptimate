@@ -2,37 +2,6 @@
 
 Create webm/mp4/gif videos by animating qualitative SVG files (e.g. exported from Figma or any other vector image editor).
 
-## CLI ussage
-
-```
-usage: scriptimate [-h] [-v] [-f FORMAT] [-i INPUT] [-fn FILENAME] [-t THREADS] [-fs FROMSECOND] [-d DEBUGHTML] [-bd BASEDIR] [-fps FPS]
-                   [-if INTERMEDIATEFORMAT] [-ijq INTERMEDIATEJPEGQUALITY]
-
-Scriptimate v1.2.14
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -v, --version         show program's version number and exit
-  -f FORMAT, --format FORMAT
-                        format webm or mp4, or multiple: "webm,mp4"
-  -i INPUT, --input INPUT
-                        Input .scrp file
-  -fn FILENAME, --filename FILENAME
-                        filename
-  -t THREADS, --threads THREADS
-                        Threads count
-  -fs FROMSECOND, --fromsecond FROMSECOND
-                        Start from second
-  -d DEBUGHTML, --debughtml DEBUGHTML
-                        Create html files near image to debug
-  -bd BASEDIR, --basedir BASEDIR
-                        Input dir
-  -fps FPS, --fps FPS   FPS
-  -if INTERMEDIATEFORMAT, --intermediateFormat INTERMEDIATEFORMAT
-                        png|jpeg
-  -ijq INTERMEDIATEJPEGQUALITY, --intermediateJpegQuality INTERMEDIATEJPEGQUALITY
-                        0.0 - 1.0
-```
 
 ## Build performance
 
@@ -123,3 +92,61 @@ ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libvpx-vp9 -b:v 2M -r 25 out.webm
 ```
 
 After generation phace we frames folder will be persisted so feel free to change ffmpeg command in any way you want.
+
+
+```
+usage: scriptimate [-h] [-v] [-f FORMAT] [-i INPUT] [-fn FILENAME] [-t THREADS] [-fs FROMSECOND] [-d DEBUGHTML] [-bd BASEDIR] [-fps FPS]
+                   [-if INTERMEDIATEFORMAT] [-ijq INTERMEDIATEJPEGQUALITY]
+
+
+
+## CLI reference
+
+
+After installing just use:
+
+```
+scriptimate -h
+```
+
+To show all available options.
+
+```
+usage: scriptimate.js [-h] [-v] [-f FORMAT] [-i INPUT] [-fn FILENAME] [-t THREADS] [-fs FROMSECOND] [-d DEBUGHTML] [-bd BASEDIR]
+                      [-fps FPS] [-if INTERMEDIATEFORMAT] [-ijq INTERMEDIATEJPEGQUALITY] [-nc NOCACHE]
+
+Scriptimate v1.2.18
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+  -f FORMAT, --format FORMAT
+                        output file format, or multiple via comma: "webm,mp4". Available formats: mov, mp4, gif, webm, default
+                        is mp4
+  -i INPUT, --input INPUT
+                        Input .smte script file
+  -fn FILENAME, --filename FILENAME
+                        output filename
+  -t THREADS, --threads THREADS
+                        Threads count used during compiling, defaults to 4
+  -fs FROMSECOND, --fromsecond FROMSECOND
+                        Start from defined second (could be used to debug animation faster, also you can use "exis" keyword in
+                        smte script)
+  -d DEBUGHTML, --debughtml DEBUGHTML
+                        Create HTML files near image to debug
+  -bd BASEDIR, --basedir BASEDIR
+                        Input directory (folder where src subfolder and .smte file is located)
+  -fps FPS, --fps FPS   FPS
+  -if INTERMEDIATEFORMAT, --intermediateFormat INTERMEDIATEFORMAT
+                        Screenshots format used to compile video png|jpeg, defaults to png
+  -ijq INTERMEDIATEJPEGQUALITY, --intermediateJpegQuality INTERMEDIATEJPEGQUALITY
+                        JPEG quality 0.0 - 1.0, defaults to 1
+  -nc NOCACHE, --nocache NOCACHE
+                        Don't use screenshots cache (but still generate it), for scriptimate develeopmnt
+```
+
+
+## Known bugs and improvements
+
+* HTML Pages gen xx% shows more then 100% if run_groups_together is used. Only visual status bug, compiled video is correct
+* HTML pages generation process is not cached and not parallelized.

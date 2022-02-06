@@ -49,10 +49,10 @@ sudo apt install libnss3-dev libatk-bridge2.0-0 libcups2 libgtk-3-0 libgbm-dev f
 
 Required version of `ffmpeg >=4.x` (Will be installed automatically in Ubuntu 20.04+, when in 18.04 it will be 3.x, which is not compatible)
 
-If you are using custom changable texts, please make sure you have all fonts installed which you use:
+If you are using custom changable texts, please make sure you have all fonts installed into os which you use, e.g. on Ubuntu:
 
 ```
-sudo apt install fonts-roboto
+sudo apt install fonts-roboto fonts-open-sans
 ```
 
 ## Hello world example

@@ -94,10 +94,6 @@ ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libvpx-vp9 -b:v 2M -r 25 out.webm
 After generation phace we frames folder will be persisted so feel free to change ffmpeg command in any way you want.
 
 
-```
-usage: scriptimate [-h] [-v] [-f FORMAT] [-i INPUT] [-fn FILENAME] [-t THREADS] [-fs FROMSECOND] [-d DEBUGHTML] [-bd BASEDIR] [-fps FPS]
-                   [-if INTERMEDIATEFORMAT] [-ijq INTERMEDIATEJPEGQUALITY]
-
 
 
 ## CLI reference

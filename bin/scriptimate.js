@@ -250,15 +250,17 @@ function firstDefined(...vals) {
   return undefined;
 }
 
+const moveToTop = async ( filename) => {
+  if (!parts[filename]) {
+    console.error(`error: can't moveToTop ${filename}, part should be first added, e.g. using "place"`);
+    return;
+  }
+  parts[filename].index = Object.values(parts).reduce((a, p) => Math.max(a, p.index), 0) + 1;
+}
 
 const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, dashoffset) => {
   let f;
-  if (parts[filename]) {
-    // treat second place as attmpt to bump an index
-    parts[filename].index = Object.values(parts).reduce((a, p) => Math.max(a, p.index), 0) + 1;
-    return;
-  }
-
+  
   const readFname = async (fn) => {
     const filePath = `${proc_args.basedir}/src/${fn}.svg`;
     const fileBuffer = await fs.readFile(filePath, { encoding: 'utf-8' });
@@ -595,6 +597,9 @@ const runGeneration = async (lang) => {
       } else if (cmd === 'place') {
         let args = argSets[0].split(' ');
         await addPart(lang, ...args);
+      } else if (cmd === 'moveToTop') {
+        let args = argSets[0].split(' ');
+        await moveToTop(...args);
       }
       else if (cmd === 'place_div') {
         let args = argSets[0].split(' ');

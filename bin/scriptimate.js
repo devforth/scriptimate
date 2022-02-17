@@ -4,13 +4,17 @@ const {promises: fs, constants: fsConstants} = require('fs');
 const { spawn, execFile } = require('child_process');
 const { ArgumentParser } = require('argparse');
 const { version } = require('../package.json');
-const { exception } = require('console');
 const svgDim = require('svg-dimensions');
 const YAML = require('yaml');
 const crypto = require('crypto');
 const os = require('os');
 
-let uniq = 0;
+let uniq;
+
+function initUnique() {
+  uniq = 0;
+}
+
 function generateUniqueId() {
   return 1237841 + uniq++;
 }
@@ -85,6 +89,9 @@ function initVariables() {
   cntr = 0;
   totalFrames = 0;
   totalFramesCount = 0;
+  frameAbsIndexByHTMLHash = {};
+  reuseAbsFrameIndexForAbsFrameIndex = {};
+  frameHashByAbsIndex = {};
 }
 
 
@@ -438,13 +445,14 @@ const unschedule = (name) => {
 
 
 
-const frameAbsIndexByHTMLHash = {};
-const reuseAbsFrameIndexForAbsFrameIndex = {};
-const frameHashByAbsIndex = {};
+let frameAbsIndexByHTMLHash = {};
+let reuseAbsFrameIndexForAbsFrameIndex = {};
+let frameHashByAbsIndex = {};
 let cacheDir = '';
 
 const runGeneration = async (lang) => {
   initVariables();
+  initUnique();
 
   function getFilename() {
     const baseFilename = proc_args.filename ? proc_args.filename: proc_args.input.split('.').slice(0, -1).join('.');
@@ -465,6 +473,7 @@ const runGeneration = async (lang) => {
 
     const html = genHtml(parts);
     const hash = crypto.createHash('sha1').update(html).digest('base64url');
+    await fs.writeFile(`${FRAMES_DIR}/_index111.html`, html)
     frameHashByAbsIndex[cntr] = hash;
     
     if (!frameAbsIndexByHTMLHash[hash]) {
@@ -511,7 +520,6 @@ const runGeneration = async (lang) => {
       totalMs += +cmd.replace('animate_', '');
       totalFrames += Math.round(+cmd.replace('animate_', '') / 1.0e3 * FPS);
     }
-    
   }
 
   await fs.rmdir(FRAMES_DIR, { recursive: true });
@@ -822,7 +830,7 @@ const runGeneration = async (lang) => {
         ffmpeg_args = [...ffmpeg_args, '-vf', `fps=${FPS},split[s0][s1];[s0]palettegen=stats_mode=full[p];[s1][p]paletteuse=dither=sierra2_4a:bayer_scale=5`, '-loop', '0', `${getFilename()}.${format}`, '-y']
 
       } else {
-        throw exception(`Unknown format: ${format}`);
+        console.error(`Unknown format: ${format}`);
       }
       log(`💿 Running encoder:\nffmpeg ${ffmpeg_args.join(' ')}`)
 
@@ -858,12 +866,10 @@ const runGeneration = async (lang) => {
       translationsDict = YAML.parse(transStr);
     }
   } catch (e) {
-    console.log('Running without translations.yml')
+    console.log('Running without translations.yml', e)
   }
-})();
 
-(async () => {
   for (let lang of [...Object.keys(translationsDict), 'default']) {
     await runGeneration(lang);
-  }  
+  }
 })();

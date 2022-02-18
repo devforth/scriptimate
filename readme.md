@@ -4,19 +4,20 @@ Create webm/mp4/gif videos by animating qualitative SVG files (e.g. exported fro
 
 > ⚠️ for now Supported Node version is 16+ (Probably 14, but 12 is not working)
 
+Works on on 🪟Windows WSL 2 🐧Ubuntu 🍏Mac
 ## Build performance
 
 🪧 Scriptimate uses `/tmp` to store build cache, so to improve build speed even more, make sure `/tmp` is mounted on RAM in `/etc/fstab`
-
-> ⚠️ If you made changes out of project sources (e.g. updated sytem font and re-built video), and see there are no updates in results, please use no cache parameter (`-nc`)
 
 ```
 tmpfs /tmp tmpfs nosuid,nodev,noatime 0 0
 ```
 
 
-## Typical example
+> ⚠️ If you made changes out of project sources (e.g. updated sytem font and re-built video), and see there are no updates in results, please use no cache parameter (`-nc`)
 
+
+## Typical example
 
 Create text file `demo.smte`:
 
@@ -52,25 +53,15 @@ sudo apt install libnss3-dev libatk-bridge2.0-0 libcups2 libgtk-3-0 libgbm-dev f
 
 Required version of `ffmpeg >=4.x` (Will be installed automatically in Ubuntu 20.04+, when in 18.04 it will be 3.x, which is not compatible)
 
-If you are using custom changable texts, please make sure you have all fonts installed into os which you use, e.g. on Ubuntu:
+If you are using custom changable texts, please make sure you have all fonts that you use in styles installed into OS, e.g. on Ubuntu:
 
 ```
 sudo apt install fonts-roboto fonts-open-sans
 ```
 
-## Hello world example
+## Getting started
 
 Read here: https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/
-
-# Development
-
-Just do:
-
-```
-npm ci
-cd examples
-node ../bin/scriptimate.js -i 7_dashoffset.smte -f gif
-```
 
 
 ## How to run examples from this repo
@@ -257,6 +248,17 @@ Used to draw strokes. Added by [@maxm123](https://github.com/maxm123)
 
 ```
 dashoffset <svg name> <[optional] mode> <target dashoffset>
+```
+
+
+# Development
+
+Just do:
+
+```
+npm ci
+cd examples
+node ../bin/scriptimate.js -i 7_dashoffset.smte -f gif
 ```
 
 ## Known bugs and improvements

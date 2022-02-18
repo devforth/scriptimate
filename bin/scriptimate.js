@@ -135,31 +135,47 @@ const ACTION_HANDLERS = {
     global[`\$${svg}__X`] = parts[svg].left;
     global[`\$${svg}__Y`] = parts[svg].top;
   },
-  scale: (i, ags_arr, first_frame_in_animate, frames, mode) => {
+  scale: (i, ags_arr, first_frame_in_animate, frames, mode, cmd) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
     const dstScale = +eval(ags_arr[1]);
+    let transformOrigin = null;
+    if (ags_arr[2]) {
+      transformOrigin = `${ags_arr[2]}`;
+      if (ags_arr[3]) {
+        transformOrigin = `${transformOrigin} ${ags_arr[3]}`;
+      }
+    }
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], scale: parts[svg].scale};
     }
+    parts[svg].transformOrigin = transformOrigin;
     parts[svg].scale = animationHandlersByMode[mode](i, freezer[svg].scale, dstScale - freezer[svg].scale, frames);
   },
-  rotate: (i, ags_arr, first_frame_in_animate, frames, mode) => {
+  rotate: (i, ags_arr, first_frame_in_animate, frames, mode, cmd) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: rotate not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
     const dstRotate = +eval(ags_arr[1]);
+    let transformOrigin = null;
+    if (ags_arr[2]) {
+      transformOrigin = `${ags_arr[2]}`;
+      if (ags_arr[3]) {
+        transformOrigin = `${transformOrigin} ${ags_arr[3]}`;
+      }
+    }
+    parts[svg].transformOrigin = transformOrigin;
     if (first_frame_in_animate) {
       freezer[svg] = {...freezer[svg], rotate: parts[svg].rotate};
     }
     parts[svg].rotate = animationHandlersByMode[mode](i, freezer[svg].rotate, dstRotate - freezer[svg].rotate, frames);
   },
-  opacity: (i, ags_arr, first_frame_in_animate, frames, mode) => {
+  opacity: (i, ags_arr, first_frame_in_animate, frames, mode, cmd) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
@@ -171,7 +187,7 @@ const ACTION_HANDLERS = {
     }
     parts[svg].opacity = animationHandlersByMode[mode](i, freezer[svg].opacity, dstOpacity - freezer[svg].opacity, frames);
   },
-  dashoffset: (i, ags_arr, first_frame_in_animate, frames, mode) => {
+  dashoffset: (i, ags_arr, first_frame_in_animate, frames, mode, cmd) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: dashoffset not applied, part not found: ${svg}, line: \n${cmd}\n`);
@@ -183,7 +199,7 @@ const ACTION_HANDLERS = {
     }
     parts[svg].dashoffset = animationHandlersByMode[mode](i, freezer[svg].dashoffset, dstOffset - freezer[svg].dashoffset, frames);
   },
-  resize_div: (i, ags_arr, first_frame_in_animate, frames, mode) => {
+  resize_div: (i, ags_arr, first_frame_in_animate, frames, mode, cmd) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
       log(`WARN: resize_div not applied, part not found: ${svg}, line: \n${cmd}\n`);
@@ -214,7 +230,7 @@ const genHtml = (allParts) => {
     if (p.type === 'part') {
       const bh = boxholes[p.toBoxHole] || {left: 0, top:0};
 
-      const partHTML = `<div style="position:${bh.name ? "absolute": "fixed"};top:${p.top-bh.top}px;left:${p.left-bh.left}px;opacity:${p.opacity};transform:scale(${p.scale}) rotate(${p.rotate}deg);stroke-dashoffset:${p.dashoffset};${p.extrastyle}">${p.content}</div>`;
+      const partHTML = `<div style="position:${bh.name ? "absolute": "fixed"};top:${p.top-bh.top}px;left:${p.left-bh.left}px;opacity:${p.opacity};transform-origin:${p.transformOrigin || 'center'};transform:scale(${p.scale}) rotate(${p.rotate}deg);stroke-dashoffset:${p.dashoffset};${p.extrastyle}">${p.content}</div>`;
       if (p.toBoxHole) {
         return `${acc}<div style="position:fixed;overflow:hidden;top:${bh.top}px;left:${bh.left}px;width:${bh.w}px;height:${bh.h}px;">
           ${partHTML}</div>`;
@@ -565,7 +581,7 @@ const runGeneration = async (lang) => {
       groupToAddNext = null;
     }
 
-    const handleActionsInAnimate = (i, argSets, frames) => {
+    const handleActionsInAnimate = (i, argSets, frames, cmd) => {
       let atLeastOneFrameMade = false;
       const first_frame_in_animate = i === 1;
     
@@ -576,7 +592,7 @@ const runGeneration = async (lang) => {
         if (Object.keys(animationHandlersByMode).includes(ags_arr[0])) {
           mode = ags_arr.shift()
         }
-        ACTION_HANDLERS[action](i, ags_arr, first_frame_in_animate, frames, mode);
+        ACTION_HANDLERS[action](i, ags_arr, first_frame_in_animate, frames, mode, cmd);
         atLeastOneFrameMade = true;
       }
       return atLeastOneFrameMade;
@@ -658,7 +674,7 @@ const runGeneration = async (lang) => {
         
         for (let i = 1; i <= frames; i += 1) {
           Object.values(timers).forEach((t) => t.tick(1000.0 / FPS));
-          handleActionsInAnimate(i, argSets, frames)
+          handleActionsInAnimate(i, argSets, frames, cmd)
           await doFrame();
           globalFramesCounter += 1;
         }

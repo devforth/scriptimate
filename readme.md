@@ -2,10 +2,13 @@
 
 Create webm/mp4/gif videos by animating qualitative SVG files (e.g. exported from Figma or any other vector image editor).
 
+> ⚠️ for now Supported Node version is 16+ (Probably 14, but 12 is not working)
 
 ## Build performance
 
-🪧 Scriptimate uses `/tmp` to store build cache, so to improve build speed even more, make sure `/tmp` it is mounted on RAM in `/etc/fstab`
+🪧 Scriptimate uses `/tmp` to store build cache, so to improve build speed even more, make sure `/tmp` is mounted on RAM in `/etc/fstab`
+
+> ⚠️ If you made changes out of project sources (e.g. updated sytem font and re-built video), and see there are no updates in results, please use no cache parameter (`-nc`)
 
 ```
 tmpfs /tmp tmpfs nosuid,nodev,noatime 0 0
@@ -141,8 +144,123 @@ optional arguments:
                         Don't use screenshots cache (but still generate it), for scriptimate develeopmnt
 ```
 
+# smte syntax
+
+
+## place: Place part
+
+Part is svg file which is basic part of animation.
+Filename should slug-compatible (latin, no spaces, etc).
+Also this filename is used as id of part anywhere
+
+```
+place <svg file name without .svg> <left cord> <top cord> <[optional] opcaity: 0-1> <[optional] scale> <[optional] whichBoxHoleToAdd> <[optional] dashOffset>
+```
+
+Example:
+Place cursor.svg at 400 120:
+```
+place cursor 400 120
+```
+
+
+## place_div: place a div
+
+Usecases:
+* dynamically change content of div via schedule_eval
+* appear some content on page
+
+```
+place_div <id of div (any slug)> <left cord> <top cord> <width> <height> <[optional] opcaity 0-1> <[optional] content of div> <[optional] whichBoxHoleToAdd>
+```
+
+## place_boxhole: place boxhole
+
+Boxhole is a rectangle zone on page which relatively places parts in it with hidden overflow (with ability to hide out of the box and then slide to zone) 
+
+```
+place_boxhole <left cord> <top cord> <width> <height>
+```
+
+## addstyle: add style to part or div
+
+``` 
+addstyle <svg name or id of div> <css styles without spaces, e.g.: "color:white;font-family:'OpenSans'">
+```
+
+## schedule_eval: schedule running of JavaScript
+
+```
+schedule_eval <id of interval> <interval in ms> <javascript code>
+```
+
+Example:
+
+```
+# schedule_eval task_time 10 incr('task_time_secs', 2); if (+get('task_time_secs') >= 60) { incr('task_time_mins'); set('task_time_secs', 0)}
+```
+
+## animate_xxx: animate commands during xxx milliseconds
+
+You can pass one or multiple commands(via '&&'). 
+If multiple commands are specified they will be executed in parallel
+
+
+```
+animate_<duration in ms> <command 1> <[optional] mode> [args of command 1]  && <cmd2> <[optional] mode> [args of command 2] and so on
+```
+
+`mode`: could be one of:
+* linear (default)
+* easein
+* easeout
+* easeinout
+
+Available commands:
+
+### move: move part
+
+```
+move <svg name> <[optional] mode> <target left> <target top>
+```
+
+### scale: scale part
+
+```
+scale <svg name> <[optional] mode> <target scale factor> <scale origin>
+```
+
+`<scale origin>` is css transform-origin, could be e.g.
+
+* center (default)
+* top left
+* bottom right
+* etc
+
+
+### rotate: rotate part
+
+```
+rotate <svg name> <[optional] mode> <target rotate deg> <scale origin>
+```
+
+### opacity: change part opacity
+
+```
+opacity <svg name> <[optional] mode> <target opacity 0 - 1>
+```
+
+### dashoffset: change dash offset
+
+Used to draw strokes. Added by [@maxm123](https://github.com/maxm123)
+
+
+```
+dashoffset <svg name> <[optional] mode> <target dashoffset>
+```
 
 ## Known bugs and improvements
 
 * HTML Pages gen xx% shows more then 100% if run_groups_together is used. Only visual status bug, compiled video is correct
 * HTML pages generation process is not cached and not parallelized.
+* boxhole should be removed, instead we should specify div id and count relational coordinates from div

@@ -406,7 +406,7 @@ const schedule_eval = (name, ms, ...rest) => {
         parts[part].content = value;
         global[part+'_value'] = value;
       }
-      eval(code)
+      eval(code);
     },
     +ms
   )
@@ -473,7 +473,6 @@ const runGeneration = async (lang) => {
 
     const html = genHtml(parts);
     const hash = crypto.createHash('sha1').update(html).digest('base64url');
-    await fs.writeFile(`${FRAMES_DIR}/_index111.html`, html)
     frameHashByAbsIndex[cntr] = hash;
     
     if (!frameAbsIndexByHTMLHash[hash]) {
@@ -526,11 +525,24 @@ const runGeneration = async (lang) => {
   await fs.mkdir(FRAMES_DIR, { recursive: true });
 
   const processed_lines = []
-  for (const line of script.split('\n')) {
+  for (const lineIter of script.split('\n')) {
+    let line = lineIter;
     if (!line.trim() || line.trim().startsWith(';')) {
       // empty line
       continue;
     }
+    if (lang !== 'default') {
+      const strings = translationsDict[lang];
+      Object.keys(strings).forEach((tr) => {
+        // not tested but should prevent from b64 strigs to be affected by translations
+        // withUniquifiedIDs = withUniquifiedIDs.replace(new RegExp(`>(.+?)${tr}(.+?)<`, 'g'), (_, v1, mid, v2) => {
+        //   return `>${v1}${strings[tr]}${v2}<`;
+        // });
+        // allows to translate constants in script too
+        line = line.replaceAll(`'${tr}'`, `'${strings[tr]}'`).replaceAll(`"${tr}"`, `"${strings[tr]}"`);
+      });
+    }
+
     if (line.trim().startsWith('&&')) {
       processed_lines[processed_lines.length - 1] += ` ${line.trim()} `;
     } else {

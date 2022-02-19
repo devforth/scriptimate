@@ -61,79 +61,19 @@ sudo apt install fonts-roboto fonts-open-sans
 
 ## Getting started
 
-Read here: https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/
+If you want to start using scriptimate, please read carefully these 2 posts:
+
+* [Getting started with Scriptimate on Tracklify Blog](https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/)
+* [Figma exort hints on hinty.io](https://hinty.io/ivictbor/prepare-figma-exports-for-scriptimate/)
 
 
 ## How to run examples from this repo
 
 1. Pull the repo
 2. `cd example`
-3. Execute `npx scriptimate@latest -i 1_helloworld.smte`
+3. Execute `npx scriptimate -i 1_helloworld.smte`
 
 
-## Advanced ussage
-
-Under the hood next commands are used:
-
-```
-ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libx264 -r 25 out.mp4 -y
-```
-
-Or for webm:
-
-```
-ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libvpx-vp9 -b:v 2M -r 25 out.webm -y
-```
-
-After generation phace we frames folder will be persisted so feel free to change ffmpeg command in any way you want.
-
-
-
-
-## CLI reference
-
-
-After installing just use:
-
-```
-scriptimate -h
-```
-
-To show all available options.
-
-```
-usage: scriptimate.js [-h] [-v] [-f FORMAT] [-i INPUT] [-fn FILENAME] [-t THREADS] [-fs FROMSECOND] [-d DEBUGHTML] [-bd BASEDIR]
-                      [-fps FPS] [-if INTERMEDIATEFORMAT] [-ijq INTERMEDIATEJPEGQUALITY] [-nc NOCACHE]
-
-Scriptimate v1.2.18
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -v, --version         show program's version number and exit
-  -f FORMAT, --format FORMAT
-                        output file format, or multiple via comma: "webm,mp4". Available formats: mov, mp4, gif, webm, default
-                        is mp4
-  -i INPUT, --input INPUT
-                        Input .smte script file
-  -fn FILENAME, --filename FILENAME
-                        output filename
-  -t THREADS, --threads THREADS
-                        Threads count used during compiling, defaults to 4
-  -fs FROMSECOND, --fromsecond FROMSECOND
-                        Start from defined second (could be used to debug animation faster, also you can use "exis" keyword in
-                        smte script)
-  -d DEBUGHTML, --debughtml DEBUGHTML
-                        Create HTML files near image to debug
-  -bd BASEDIR, --basedir BASEDIR
-                        Input directory (folder where src subfolder and .smte file is located)
-  -fps FPS, --fps FPS   FPS
-  -if INTERMEDIATEFORMAT, --intermediateFormat INTERMEDIATEFORMAT
-                        Screenshots format used to compile video png|jpeg, defaults to png
-  -ijq INTERMEDIATEJPEGQUALITY, --intermediateJpegQuality INTERMEDIATEJPEGQUALITY
-                        JPEG quality 0.0 - 1.0, defaults to 1
-  -nc NOCACHE, --nocache NOCACHE
-                        Don't use screenshots cache (but still generate it), for scriptimate develeopmnt
-```
 
 # .smte syntax
 
@@ -313,6 +253,7 @@ define_group rotator:
 run_groups_together scenario1 scenario2 rotator
 ```
 
+
 # Constants
 
 Anywhere in smte you can define a constant with using:
@@ -344,6 +285,71 @@ Example. Place cake.svg and plate.svg directly under it:
 ```
 place cake 0 0 
 place plate 0 $cake__HEIGHT
+```
+
+
+## Advanced ussage
+
+Under the hood next commands are used:
+
+```
+ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libx264 -r 25 out.mp4 -y
+```
+
+Or for webm:
+
+```
+ffmpeg -framerate 25/1 -i frames/%07d.jpg -c:v libvpx-vp9 -b:v 2M -r 25 out.webm -y
+```
+
+After generation phace we frames folder will be persisted so feel free to change ffmpeg command in any way you want to produce some exotic format.
+
+
+
+
+## CLI reference
+
+
+After installing just use:
+
+```
+scriptimate -h
+```
+
+To show all available options.
+
+```
+usage: scriptimate.js [-h] [-v] [-f FORMAT] [-i INPUT] [-fn FILENAME] [-t THREADS] [-fs FROMSECOND] [-d DEBUGHTML] [-bd BASEDIR]
+                      [-fps FPS] [-if INTERMEDIATEFORMAT] [-ijq INTERMEDIATEJPEGQUALITY] [-nc NOCACHE]
+
+Scriptimate v1.2.18
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+  -f FORMAT, --format FORMAT
+                        output file format, or multiple via comma: "webm,mp4". Available formats: mov, mp4, gif, webm, default
+                        is mp4
+  -i INPUT, --input INPUT
+                        Input .smte script file
+  -fn FILENAME, --filename FILENAME
+                        output filename
+  -t THREADS, --threads THREADS
+                        Threads count used during compiling, defaults to 4
+  -fs FROMSECOND, --fromsecond FROMSECOND
+                        Start from defined second (could be used to debug animation faster, also you can use "exis" keyword in
+                        smte script)
+  -d DEBUGHTML, --debughtml DEBUGHTML
+                        Create HTML files near image to debug
+  -bd BASEDIR, --basedir BASEDIR
+                        Input directory (folder where src subfolder and .smte file is located)
+  -fps FPS, --fps FPS   FPS
+  -if INTERMEDIATEFORMAT, --intermediateFormat INTERMEDIATEFORMAT
+                        Screenshots format used to compile video png|jpeg, defaults to png
+  -ijq INTERMEDIATEJPEGQUALITY, --intermediateJpegQuality INTERMEDIATEJPEGQUALITY
+                        JPEG quality 0.0 - 1.0, defaults to 1
+  -nc NOCACHE, --nocache NOCACHE
+                        Don't use screenshots cache (but still generate it), for scriptimate develeopmnt
 ```
 
 

@@ -14,7 +14,7 @@ tmpfs /tmp tmpfs nosuid,nodev,noatime 0 0
 ```
 
 
-> ⚠️ If you made changes out of project sources (e.g. updated sytem font and re-built video), and see there are no updates in results, please use no cache parameter (`-nc`)
+> ⚠️ If you made changes out of project sources (e.g. updated sytem font and re-built video), and see there are no updates in results, please use no cache parameter (`-nc 1`)
 
 
 ## Typical example
@@ -135,8 +135,12 @@ optional arguments:
                         Don't use screenshots cache (but still generate it), for scriptimate develeopmnt
 ```
 
-# smte syntax
+# .smte syntax
 
+Please start with reading [scriptimate getting started blog post](https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/).
+This reference could be used for advanced use-cases.
+
+Supported commands:
 
 ## place: Place part
 
@@ -153,6 +157,7 @@ Place cursor.svg at 400 120:
 ```
 place cursor 400 120
 ```
+
 
 
 ## place_div: place a div
@@ -191,14 +196,14 @@ Example:
 # schedule_eval task_time 10 incr('task_time_secs', 2); if (+get('task_time_secs') >= 60) { incr('task_time_mins'); set('task_time_secs', 0)}
 ```
 
-## animate_xxx: animate commands during xxx milliseconds
+## animate_xxx: apply animators during xxx milliseconds
 
-You can pass one or multiple commands(via '&&'). 
-If multiple commands are specified they will be executed in parallel
+You can pass one or multiple animators(via '&&'). 
+If multiple animators are specified they will be executed in parallel
 
 
 ```
-animate_<duration in ms> <command 1> <[optional] mode> [args of command 1]  && <cmd2> <[optional] mode> [args of command 2] and so on
+animate_<duration in ms> <animator 1> <[optional] mode> [args of animator 1]  && <animator 2> <[optional] mode> [args of animator 2] and so on
 ```
 
 `mode`: could be one of:
@@ -207,7 +212,19 @@ animate_<duration in ms> <command 1> <[optional] mode> [args of command 1]  && <
 * easeout
 * easeinout
 
-Available commands:
+Available animators:
+
+### pause : do nothing, just wait (sleep)
+
+```
+pause
+```
+
+Example: sleep for 3.5 seconds:
+
+```
+animate_3500 pause
+```
 
 ### move: move part
 
@@ -228,7 +245,6 @@ scale <svg name> <[optional] mode> <target scale factor> <scale origin>
 * bottom right
 * etc
 
-
 ### rotate: rotate part
 
 ```
@@ -248,6 +264,86 @@ Used to draw strokes. Added by [@maxm123](https://github.com/maxm123)
 
 ```
 dashoffset <svg name> <[optional] mode> <target dashoffset>
+```
+
+### resize_div
+
+Could be used to create animated bars.
+This animator only changes width and height css attributes, so div should have display:flex or something added via `addstyle`.
+```
+resize_div <div_name> <destination width> <destination height>
+```
+
+
+
+# define_group: define group of commands
+
+Could be used to define several parallel complex scenarious.
+
+```
+define_group <group name, slug compatable>:
+  <command 1> command args
+  <command 2> command args
+  etc
+
+```
+
+Then `run_groups_together` should be used to start them
+
+```
+run_groups_together <group name 1> <group name 2> etc.
+```
+
+Example: 
+
+```
+define_group scenario1:
+  animate_1000 move easein boomerang1 270 -
+  animate_2000 move easeout boomerang1 $frameW-$boomerang1__WIDTH $frameH-$boomerang1__HEIGHT
+
+
+define_group scenario2:
+  animate_1000 move boomerang2 250 -
+  animate_1000 pause
+  animate_1000 move boomerang2 $frameW-$boomerang1__WIDTH 0
+
+define_group rotator:
+  animate_3000 rotate boomerang1 360*4 && rotate boomerang2 360*5
+
+run_groups_together scenario1 scenario2 rotator
+```
+
+# Constants
+
+Anywhere in smte you can define a constant with using:
+
+```
+const <slug compatible constant name>=<constant value>
+```
+
+Example:
+
+```
+const $PositionX=600 $underLocation=300
+```
+
+## Built-in constants
+
+When part is added there are internal constants
+
+```
+$<part name>__WIDTH    # width of SVG part in px
+$<part name>__HEIGHT   # height of SVG part in px
+$<part name>__LEFT     # current left coordinate of SVG part in px
+$<part name>__TOP      # current top coordinate of SVG part in px
+```
+They return dimensions of SVG image.
+
+Example. Place cake.svg and plate.svg directly under it:
+
+```
+place cake 0 0 
+place plate 0 $cake__HEIGHT
 ```
 
 

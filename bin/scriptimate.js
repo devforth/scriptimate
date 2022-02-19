@@ -132,8 +132,12 @@ const ACTION_HANDLERS = {
 
     parts[svg].top = animationHandlersByMode[mode](i, freezer[svg].top, dstTop - freezer[svg].top, frames);
     parts[svg].left = animationHandlersByMode[mode](i, freezer[svg].left, dstLeft - freezer[svg].left, frames);
-    global[`\$${svg}__X`] = parts[svg].left;
-    global[`\$${svg}__Y`] = parts[svg].top;
+    global[`\$${svg}__X`] = parts[svg].left;  //todo legacy
+    global[`\$${svg}__Y`] = parts[svg].top;  //todo legacy
+    global[`\$${svg}__LEFT`] = parts[svg].left;
+    global[`\$${svg}__TOP`] = parts[svg].top;
+
+
   },
   scale: (i, ags_arr, first_frame_in_animate, frames, mode, cmd) => {
     const svg = ags_arr[0];
@@ -383,14 +387,14 @@ const addBoxHole = (name, left, top, w, h) => {
   }
 }
 
-const setPseudoInterval = (f, ms) => {
+const setPseudoInterval = (callback, ms) => {
   const o = {
     t: 0,
     tick(passed_ms) {
       this.t += passed_ms;
-      if (this.t >= ms) {
-        f();
-        this.t = 0;
+      while (this.t >= ms) {
+        callback();
+        this.t -= ms;
       }
     }
   }

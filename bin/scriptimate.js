@@ -136,8 +136,6 @@ const ACTION_HANDLERS = {
     global[`\$${svg}__Y`] = parts[svg].top;  //todo legacy
     global[`\$${svg}__LEFT`] = parts[svg].left;
     global[`\$${svg}__TOP`] = parts[svg].top;
-
-
   },
   scale: (i, ags_arr, first_frame_in_animate, frames, mode, cmd) => {
     const svg = ags_arr[0];
@@ -331,10 +329,10 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, das
     const strings = translationsDict[lang];
     Object.keys(strings).forEach((tr) => {
       // not tested but should prevent from b64 strigs to be affected by translations
-      // withUniquifiedIDs = withUniquifiedIDs.replace(new RegExp(`>(.+?)${tr}(.+?)<`, 'g'), (_, v1, mid, v2) => {
-      //   return `>${v1}${strings[tr]}${v2}<`;
-      // });
-      withUniquifiedIDs = withUniquifiedIDs.replaceAll(tr, strings[tr]);
+      withUniquifiedIDs = withUniquifiedIDs.replace(new RegExp(`>(.+?)${tr}(.+?)<`, 'g'), (_, v1, v2) => {
+        return `>${v1}${strings[tr]}${v2}<`;
+      });
+      // withUniquifiedIDs = withUniquifiedIDs.replaceAll(tr, strings[tr]);
     });
   }
   parts[filename] = {
@@ -354,6 +352,8 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, das
   freezer[filename] = {};
   global[`\$${filename}__X`] = parts[filename].left;
   global[`\$${filename}__Y`] = parts[filename].top;
+  global[`\$${filename}__LEFT`] = parts[filename].left;
+  global[`\$${filename}__TOP`] = parts[filename].top;
 };
 
 const addDiv = (name, left, top, w, h, opacity, c, toBoxHole) => {
@@ -375,6 +375,8 @@ const addDiv = (name, left, top, w, h, opacity, c, toBoxHole) => {
   }
   global[`\$${name}__X`] = parts[name].left;
   global[`\$${name}__Y`] = parts[name].top;
+  global[`\$${name}__LEFT`] = parts[name].left;
+  global[`\$${name}__TOP`] = parts[name].top;
 }
 
 const addBoxHole = (name, left, top, w, h) => {
@@ -554,10 +556,6 @@ const runGeneration = async (lang) => {
     if (lang !== 'default') {
       const strings = translationsDict[lang];
       Object.keys(strings).forEach((tr) => {
-        // not tested but should prevent from b64 strigs to be affected by translations
-        // withUniquifiedIDs = withUniquifiedIDs.replace(new RegExp(`>(.+?)${tr}(.+?)<`, 'g'), (_, v1, mid, v2) => {
-        //   return `>${v1}${strings[tr]}${v2}<`;
-        // });
         // allows to translate constants in script too
         line = line.replaceAll(`'${tr}'`, `'${strings[tr]}'`).replaceAll(`"${tr}"`, `"${strings[tr]}"`);
       });

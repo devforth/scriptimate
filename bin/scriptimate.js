@@ -366,7 +366,7 @@ const addDiv = (name, left, top, w, h, opacity, c, toBoxHole) => {
     opacity: +firstDefined(opacity, 1),
     w: +firstDefined(eval(w), 0),
     h: +firstDefined(eval(h), 0),
-    index: Object.values(parts).length,
+    index: Object.values(parts).reduce((a, p) => Math.max(a, p.index), 0) + 1,
     rotate: +firstDefined(0, 0),
     dashoffset: +firstDefined(0, 0),
     content: content,

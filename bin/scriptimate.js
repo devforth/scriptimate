@@ -140,7 +140,7 @@ const ACTION_HANDLERS = {
   scale: (i, ags_arr, first_frame_in_animate, frames, mode, cmd) => {
     const svg = ags_arr[0];
     if (!parts[svg]) {
-      log(`WARN: opacity not applied, part not found: ${svg}, line: \n${cmd}\n`);
+      log(`WARN: scale not applied, part not found: ${svg}, line: \n${cmd}\n`);
       return;
     }
     const dstScale = +eval(ags_arr[1]);

@@ -127,6 +127,12 @@ addstyle <svg name or id of div> <css styles without spaces, e.g.: "color:white;
 ## moveToTop: move some part to top over all elements
 
 ```
+moveToTop <svg name>
+```
+
+Example:
+
+```
 moveToTop cursor
 ```
 

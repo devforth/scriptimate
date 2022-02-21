@@ -124,6 +124,12 @@ place_boxhole <left cord> <top cord> <width> <height>
 addstyle <svg name or id of div> <css styles without spaces, e.g.: "color:white;font-family:'OpenSans'">
 ```
 
+## moveToTop: move some part to top over all elements
+
+```
+moveToTop cursor
+```
+
 ## schedule_eval: schedule running of JavaScript
 
 ```

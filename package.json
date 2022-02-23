@@ -1,6 +1,6 @@
 {
   "name": "scriptimate",
-  "version": "1.2.28",
+  "version": "1.2.29",
   "description": "Open-source SVG animation tool",
   "main": "bin/index.js",
   "keywords": [
@@ -32,6 +32,7 @@
   "homepage": "https://tracklify.com/blog/scriptimate-an-open-source-tool-to-create-svg-animations-in-a-coding-way/",
   "dependencies": {
     "argparse": "^2.0.1",
+    "jsdom": "^19.0.0",
     "puppeteer": "^10.4.0",
     "svg-dimensions": "^1.0.2",
     "yaml": "^1.10.2"

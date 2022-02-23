@@ -8,6 +8,8 @@ const svgDim = require('svg-dimensions');
 const YAML = require('yaml');
 const crypto = require('crypto');
 const os = require('os');
+const jsdom = require("jsdom");
+const { JSDOM } = jsdom;
 
 let uniq;
 
@@ -41,8 +43,6 @@ parser.add_argument('-fps', '--fps', { help: 'FPS', default: 25 });
 parser.add_argument('-if', '--intermediateFormat', { help: 'Screenshots format used to compile video png|jpeg, defaults to png', default: 'png' });
 parser.add_argument('-ijq', '--intermediateJpegQuality', { help: 'JPEG quality 0.0 - 1.0, defaults to 1', default: 1 });
 parser.add_argument('-nc', '--nocache', { help: "Don't use screenshots cache (but still generate it), for scriptimate develeopmnt", default: false });
-
-
 
 
 const proc_args = parser.parse_args();
@@ -325,12 +325,13 @@ const addPart = async (lang, filename, left, top, opacity, scale, toBoxHole, das
   });
   if (lang !== 'default') {
     const strings = translationsDict[lang];
-    Object.keys(strings).forEach((tr) => {
-      withUniquifiedIDs = withUniquifiedIDs.replace(new RegExp(`>(.+?)${tr}(.+?)<`, 'g'), (_, v1, v2) => {
-        return `>${v1}${strings[tr]}${v2}<`;
-      });
-      // withUniquifiedIDs = withUniquifiedIDs.replaceAll(tr, strings[tr]);
-    });
+    const dom = new JSDOM(withUniquifiedIDs);
+    for ( let e of dom.window.document.querySelectorAll("tspan") ) {
+      for (let tr of Object.keys(strings)) {
+        e.innerHTML = e.innerHTML.replaceAll(tr, strings[tr]);
+      };
+    }
+    withUniquifiedIDs = dom.window.document.querySelector('html').innerHTML;
   }
   parts[filename] = {
     type: 'part',

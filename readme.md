@@ -17,16 +17,6 @@ Create webm/mp4/gif videos by animating qualitative SVG files (e.g. exported fro
 > ⚠️ for now Supported Node version is 16+ (Probably 14, but 12 is not working)
 
 Works on on 🪟Windows WSL 2 🐧Ubuntu 🍏Mac
-## Build performance
-
-🪧 Scriptimate uses `/tmp` to store build cache, so to improve build speed even more, make sure `/tmp` is mounted on RAM in `/etc/fstab`
-
-```
-tmpfs /tmp tmpfs nosuid,nodev,noatime 0 0
-```
-
-
-> ⚠️ If you made changes out of project sources (e.g. updated sytem font and re-built video), and see there are no updates in results, please use no cache parameter (`-nc 1`)
 
 
 ## Typical example
@@ -376,6 +366,16 @@ optional arguments:
                         Don't use screenshots cache (but still generate it), for scriptimate develeopmnt
 ```
 
+# Build performance
+
+🪧 Scriptimate uses `/tmp` to store build cache, so to improve build speed even more, make sure `/tmp` is mounted on RAM in `/etc/fstab`
+
+```
+tmpfs /tmp tmpfs nosuid,nodev,noatime 0 0
+```
+
+
+> ⚠️ If you made changes out of project sources (e.g. updated sytem font and re-built video), and see there are no updates in results, please use no cache parameter (`-nc 1`)
 
 # Development
 

@@ -540,8 +540,13 @@ const runGeneration = async (lang) => {
       totalFrames += Math.round(+cmd.replace('animate_', '') / 1.0e3 * FPS);
     }
   }
+  
+  try {
+    await fs.access(FRAMES_DIR)
+    await fs.rm(FRAMES_DIR, { recursive: true });
+  }
+  catch(err) {}  // Ignore error thrown if folder doesn't exist
 
-  await fs.rm(FRAMES_DIR, { recursive: true });
   await fs.mkdir(FRAMES_DIR, { recursive: true });
 
   const processed_lines = []

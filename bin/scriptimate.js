@@ -541,7 +541,7 @@ const runGeneration = async (lang) => {
     }
   }
 
-  await fs.rmdir(FRAMES_DIR, { recursive: true });
+  await fs.rm(FRAMES_DIR, { recursive: true });
   await fs.mkdir(FRAMES_DIR, { recursive: true });
 
   const processed_lines = []
